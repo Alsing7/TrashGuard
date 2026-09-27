@@ -1,0 +1,52 @@
+{
+  "port": 4319,
+  "sampleIntervalMs": 2000,
+  "signaturesPerTick": 15,
+  "serviceEveryTicks": 15,
+  "gpuEveryTicks": 3,
+  "shutdownGraceMs": 30000,
+  "firstClientTimeoutMs": 120000,
+  "historyLength": 150,
+  "minAverageWindowMs": 30000,
+  "backgroundThresholds": {
+    "cpuPercent": 0.3,
+    "ramMb": 500,
+    "gpuPercent": 2,
+    "vramMb": 500
+  },
+  "disk": {
+    "concurrency": 16,
+    "minItemMb": 1,
+    "minFraction": 0.002,
+    "maxChildren": 80,
+    "maxDepth": 5,
+    "progressMs": 1000,
+    "recycleTimeoutMs": 600000,
+    "lockedTrees": ["%SystemRoot%", "%ProgramFiles%", "%ProgramFiles(x86)%"],
+    "lockedExact": [
+      "%SystemDrive%\\Users", "%PUBLIC%", "%ProgramData%",
+      "%USERPROFILE%", "%USERPROFILE%\\AppData", "%LOCALAPPDATA%", "%APPDATA%",
+      "%USERPROFILE%\\Desktop", "%USERPROFILE%\\Documents", "%USERPROFILE%\\Downloads"
+    ],
+    "lockedRootFolders": ["$Recycle.Bin", "System Volume Information", "Recovery", "Config.Msi", "$WinREAgent"]
+  },
+  "weights": {
+    "background": 2,
+    "autostart": 1.5,
+    "knownBloat": 2
+  },
+  "protectedProcesses": [
+    "System", "Registry", "Memory Compression", "Secure System",
+    "smss.exe", "csrss.exe", "wininit.exe", "winlogon.exe", "services.exe", "lsass.exe", "LsaIso.exe",
+    "dwm.exe", "fontdrvhost.exe", "MsMpEng.exe", "NisSrv.exe", "MpDefenderCoreService.exe"
+  ],
+  "protectedServices": [
+    "RpcSs", "RpcEptMapper", "DcomLaunch", "LSM", "Schedule", "EventLog", "EventSystem", "PlugPlay", "Power",
+    "ProfSvc", "SamSs", "KeyIso", "VaultSvc", "BFE", "mpssvc", "WinDefend", "WdNisSvc", "SecurityHealthService",
+    "CryptSvc", "Winmgmt", "gpsvc", "Appinfo", "AppXSvc", "ClipSVC", "StateRepository", "TrustedInstaller",
+    "msiserver", "wuauserv", "UsoSvc", "BITS", "AudioSrv", "AudioEndpointBuilder", "Dhcp", "Dnscache", "nsi",
+    "NlaSvc", "netprofm", "Wcmsvc", "LanmanWorkstation", "BrokerInfrastructure", "CoreMessagingRegistrar",
+    "SystemEventsBroker", "TimeBrokerSvc", "UserManager", "SENS", "ShellHWDetection", "Themes", "FontCache",
+    "DispBrokerDesktopSvc", "DeviceInstall", "DsmSvc", "camsvc", "sppsvc"
+  ]
+}

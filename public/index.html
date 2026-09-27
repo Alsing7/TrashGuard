@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="tg-token" content="__TOKEN__">
+  <title>TrashGuard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">TrashGuard</h1>
+    <p class="status" id="status">Forbinder…</p>
+    <button type="button" class="button" id="refresh">Opdatér opstart og tjenester</button>
+  </header>
+
+  <p class="banner" id="admin-banner" hidden>TrashGuard kører ikke som administrator. Du kan se alt, men tjenester, opgaver og opstartsposter for alle brugere kan ikke ændres. Start den via genvejen på skrivebordet.</p>
+  <p class="banner banner-problem" id="problem" hidden></p>
+
+  <section class="hero">
+    <div class="lenses" role="group" aria-label="Vælg, hvad der skal måles">
+      <button type="button" class="lens" data-lens="cpu" aria-pressed="true"><span class="lens-name">CPU</span><span class="lens-value" data-lens-value="cpu">–</span></button>
+      <button type="button" class="lens" data-lens="ram" aria-pressed="false"><span class="lens-name">RAM</span><span class="lens-value" data-lens-value="ram">–</span></button>
+      <button type="button" class="lens" data-lens="gpu" aria-pressed="false"><span class="lens-name">GPU</span><span class="lens-value" data-lens-value="gpu">–</span></button>
+      <button type="button" class="lens" data-lens="vram" aria-pressed="false"><span class="lens-name">VRAM</span><span class="lens-value" data-lens-value="vram">–</span></button>
+    </div>
+    <div class="hero-number" aria-live="polite">
+      <p class="headline"><span id="headline">–</span><span class="headline-unit" id="headline-unit">%</span></p>
+      <p class="headline-text" id="headline-text">af din CPU går lige nu til ting i baggrunden, som du ikke selv har åbnet.</p>
+      <dl class="facts">
+        <div><dt id="fact-total-label">Samlet CPU</dt><dd id="fact-total">–</dd></div>
+        <div><dt>Syndere</dt><dd id="fact-suspects">–</dd></div>
+        <div><dt>Døde opstartsposter</dt><dd id="fact-orphans">–</dd></div>
+      </dl>
+    </div>
+    <figure class="hero-graph">
+      <canvas id="headline-graph" height="140" aria-label="Baggrundsforbrug de seneste fem minutter"></canvas>
+      <figcaption>De seneste 5 minutter</figcaption>
+    </figure>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" class="tab" data-tab="live" aria-selected="true">Live</button>
+    <button type="button" role="tab" class="tab" data-tab="startup" aria-selected="false">Opstart og baggrund</button>
+    <button type="button" role="tab" class="tab" data-tab="disk" aria-selected="false">Disk</button>
+    <button type="button" role="tab" class="tab" data-tab="log" aria-selected="false">Log</button>
+  </nav>
+
+  <main>
+    <section class="panel" id="tab-live">
+      <div class="live">
+        <div class="list" id="group-list">
+          <details class="section" open data-section="suspect"><summary>Syndere <span class="count"></span></summary><ol class="rows"></ol></details>
+          <details class="section" data-section="yours"><summary>Dine programmer <span class="count"></span></summary><ol class="rows"></ol></details>
+          <details class="section" data-section="trusted"><summary>Du stoler på <span class="count"></span></summary><ol class="rows"></ol></details>
+          <details class="section" data-section="windows"><summary>Windows selv <span class="count"></span></summary><ol class="rows"></ol></details>
+        </div>
+        <aside class="detail" id="detail">
+          <p class="empty">Vælg et program på listen for at se, hvad det hænger sammen med.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel" id="tab-startup" hidden>
+      <label class="toggle"><input type="checkbox" id="show-windows"> Vis Windows' egne opgaver og tjenester</label>
+      <h2>Opstartsposter</h2>
+      <table class="table" id="table-startup"></table>
+      <h2>Planlagte opgaver</h2>
+      <table class="table" id="table-tasks"></table>
+      <h2>Tjenester</h2>
+      <table class="table" id="table-services"></table>
+    </section>
+
+    <section class="panel" id="tab-disk" hidden>
+      <div class="disk-bar">
+        <div class="drives" id="disk-drives"></div>
+        <form class="disk-path" id="disk-path-form">
+          <input class="input" id="disk-path" type="text" placeholder="Eller en mappe, fx D:\Spil" aria-label="Mappe der skal scannes" autocomplete="off" spellcheck="false">
+          <button type="submit" class="button">Scan mappe</button>
+        </form>
+      </div>
+      <p class="disk-status" id="disk-status"></p>
+      <div class="disk-nav">
+        <nav class="crumbs" id="disk-crumbs" aria-label="Sti"></nav>
+        <div class="switch" role="group" aria-label="Visning">
+          <button type="button" data-disk-mode="boxes" aria-pressed="true">Kasser</button>
+          <button type="button" data-disk-mode="sunburst" aria-pressed="false">Solstråle</button>
+        </div>
+      </div>
+      <div class="disk-main">
+        <div class="disk-map">
+          <canvas id="disk-canvas" aria-label="Kort over pladsforbrug. Listen ved siden af viser det samme som tekst."></canvas>
+          <div class="disk-empty" id="disk-empty"></div>
+          <div class="disk-tip" id="disk-tip" role="tooltip" hidden></div>
+        </div>
+        <aside class="detail" id="disk-detail"></aside>
+      </div>
+      <p class="legend">
+        <span class="legend-swatch legend-junk"></span> Kendt skrald eller cache
+        <span class="legend-swatch legend-locked"></span> Låst: Windows og programmer
+        <span class="legend-swatch legend-plain"></span> Alt andet
+        <span class="legend-hint">Klik på en mappe for at gå ind. Backspace går et niveau op.</span>
+      </p>
+    </section>
+
+    <section class="panel" id="tab-log" hidden>
+      <ol class="log" id="log"></ol>
+    </section>
+  </main>
+
+  <p class="toast" id="toast" role="status" hidden></p>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

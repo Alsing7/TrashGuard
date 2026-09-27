@@ -1,0 +1,60 @@
+{
+  "exe": {
+    "AdobeARM.exe": "Adobe Acrobats opdateringstjek. Acrobat kan selv opdatere, når du åbner den.",
+    "AdobeCollabSync.exe": "Adobe Acrobats synkronisering af delte dokumenter. Kører også, når du ikke bruger Acrobat.",
+    "CCXProcess.exe": "Adobe Creative Cloud Experience: tips og reklamer i baggrunden. Ikke nødvendig for Adobe-programmerne.",
+    "jusched.exe": "Javas opdateringstjek. Kører hele tiden for at kigge efter en ny version.",
+    "jucheck.exe": "Javas opdateringstjek.",
+    "MicrosoftEdgeUpdate.exe": "Edges updater. Edge opdaterer også selv, når den kører.",
+    "GoogleUpdate.exe": "Googles gamle updater til Chrome og andre Google-programmer.",
+    "iTunesHelper.exe": "iTunes-hjælper, der venter på, at en iPhone bliver sat i.",
+    "PhoneExperienceHost.exe": "Phone Link (Din telefon). Kører i baggrunden, selvom du ikke har parret en telefon.",
+    "YourPhone.exe": "Den gamle Din telefon-app. Kører i baggrunden.",
+    "Widgets.exe": "Windows-widgets på proceslinjen.",
+    "GameBarPresenceWriter.exe": "Xbox Game Bar holder øje med, om du spiller. Kun nyttig, hvis du bruger Game Bar.",
+    "SkypeBackgroundHost.exe": "Skypes baggrundsproces.",
+    "SkypeApp.exe": "Skype i baggrunden."
+  },
+  "service": {
+    "DiagTrack": "Windows-telemetri (Forbundne brugeroplevelser og telemetri). Sender brugsdata til Microsoft.",
+    "dmwappushservice": "Hjælpetjeneste til Windows-telemetri.",
+    "MapsBroker": "Henter offline-kort til Windows Kort-appen.",
+    "RetailDemo": "Butiksdemo-tilstand til computere i en fysisk butik.",
+    "XblAuthManager": "Xbox Live-login. Kun nødvendig til Xbox- og Game Pass-spil. Står den på Manuel, starter spillet den selv.",
+    "XblGameSave": "Xbox Live-gemte spil i skyen. Kun nødvendig til Xbox- og Game Pass-spil.",
+    "XboxNetApiSvc": "Xbox Live-netværk. Kun nødvendig til Xbox- og Game Pass-spil.",
+    "edgeupdate": "Edges updater (automatisk).",
+    "edgeupdatem": "Edges updater (manuel).",
+    "gupdate": "Googles updater (automatisk).",
+    "gupdatem": "Googles updater (manuel).",
+    "AdobeARMservice": "Adobe Acrobats opdateringstjeneste.",
+    "Fax": "Faxtjeneste.",
+    "WMPNetworkSvc": "Windows Media Player-deling af medier på netværket."
+  },
+  "folders": {
+    "node_modules": "npm-pakker til et kodeprojekt. Kan altid hentes igen med npm install.",
+    "__pycache__": "Pythons cache af kompileret kode. Bygges op igen af sig selv.",
+    "AppData\\Local\\Temp": "Midlertidige filer. Det meste kan ryddes; filer i brug bliver afvist.",
+    "AppData\\Local\\CrashDumps": "Nedbrudsdumps fra programmer, der er gået ned.",
+    "AppData\\Local\\D3DSCache": "DirectX' shader-cache. Bygges op igen efter behov.",
+    "AppData\\Local\\NVIDIA\\DXCache": "NVIDIA's shader-cache til DirectX. Bygges op igen efter behov.",
+    "AppData\\Local\\NVIDIA\\GLCache": "NVIDIA's shader-cache til OpenGL. Bygges op igen efter behov.",
+    "AppData\\Local\\npm-cache": "npm's downloadcache.",
+    "AppData\\Local\\pip\\Cache": "pips downloadcache.",
+    "User Data\\Default\\Cache": "Browser-cache (Chrome eller Edge). Bygges op igen.",
+    "User Data\\Default\\Code Cache": "Browserens cache af kompileret JavaScript.",
+    "discord\\Cache": "Discords cache af billeder og filer.",
+    "SoftwareDistribution\\Download": "Windows Update-downloads. Ryd dem med Windows' Diskoprydning, ikke ved at slette mappen.",
+    "NVIDIA Corporation\\Downloader": "NVIDIA's gemte driverdownloads."
+  },
+  "task": {
+    "MicrosoftEdgeUpdateTask": "Edges updater, der vågner flere gange om dagen.",
+    "GoogleUpdateTask": "Googles updater, der vågner flere gange om dagen.",
+    "GoogleUpdater": "Googles updater, der vågner flere gange om dagen.",
+    "Adobe Acrobat Update Task": "Adobe Acrobats opdateringstjek.",
+    "AdobeGCInvoker": "Adobes licenskontrol, der vågner dagligt.",
+    "Customer Experience Improvement Program\\Consolidator": "Microsofts program til forbedring af kundeoplevelsen: indsamler brugsdata.",
+    "Application Experience\\Microsoft Compatibility Appraiser": "Telemetri: scanner dine programmer og sender kompatibilitetsdata til Microsoft.",
+    "Application Experience\\ProgramDataUpdater": "Telemetri: indsamler programdata til Microsoft."
+  }
+}
