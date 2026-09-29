@@ -1,5 +1,7 @@
 Status: v3 (Disk) · 2026-09-27 · verificeret mod koden
 
+Vibecoding er fedt!!
+
 # TrashGuard
 
 Lokalt dashboard, der finder CPU-, RAM- og GPU-slugere og baggrunds-bloat, viser hvad hver ting hænger sammen med (opstartspost, tjeneste, planlagt opgave, forældreproces), og slår det fra med ét klik, der kan fortrydes. Disk-fanen viser, hvad der fylder på dine drev, som kasser eller solstråle.
