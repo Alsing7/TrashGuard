@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, link, symlink, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, link, symlink, rm, lstat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   startScan, findNode, removeNode, replaceNode, toJson, fromJson, buildView, createDiskRules,
-  normalizePath, isInside, makeDir, addFile, collapseSmall,
+  normalizePath, isInside, makeDir, addFile, collapseSmall, addShadowStorage,
 } from '../lib/disk.mjs';
 
 const KB = 1024;
@@ -42,6 +42,40 @@ test('scanning: hardlinks én gang, junctions følges ikke, små mapper foldes i
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test('scanning: låste filer (som pagefile.sys) slås op og tælles med', async () => {
+  const root = normalizePath(await mkdtemp(join(tmpdir(), 'trashguard-')));
+  await writeFile(join(root, 'laast.bin'), Buffer.alloc(200 * KB));
+  // Sådan svarer Windows for pagefile.sys og hiberfil.sys; en test kan ikke låse en fil på den måde.
+  const deniedForLocked = (path, options) => (path.endsWith('laast.bin')
+    ? Promise.reject(Object.assign(new Error('EPERM'), { code: 'EPERM' }))
+    : lstat(path, options));
+  try {
+    let asked = null;
+    const scan = startScan(root, {
+      concurrency: 2, minItemBytes: MIN_ITEM, statFile: deniedForLocked,
+      resolveUnreadable: async (wanted) => {
+        asked = wanted;
+        return { [root]: { 'laast.bin': 200 * KB } };
+      },
+    });
+    const { tree, stats } = await scan.done;
+    assert.deepEqual(asked, { [root]: ['laast.bin'] });
+    assert.equal(tree.size, 200 * KB);
+    assert.equal(stats.unreadable, 0);
+    assert.ok(findNode(tree, root, `${root}\\laast.bin`));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('gendannelsespunkter lægges i System Volume Information og tæller i drevets total', () => {
+  const tree = makeDir('C:\\');
+  addShadowStorage(tree, 5000, 100);
+  addShadowStorage(makeDir('D:\\'), null, 100);
+  assert.equal(tree.size, 5000);
+  assert.equal(findNode(tree, 'C:\\', 'C:\\System Volume Information\\Gendannelsespunkter').size, 5000);
 });
 
 test('træ: fjern og erstat retter størrelser hele vejen op; JSON rundtur', () => {
@@ -87,7 +121,7 @@ test('låst: rod, rodfiler, systemtræer, nødvendige mapper; resten er fri', ()
   assert.equal(rules.lockReason('C:\\Games', false), null);
   assert.equal(rules.lockReason('C:\\Windows\\WinSxS', false), 'system');
   assert.equal(rules.lockReason('C:\\WindowsApps', false), null);
-  assert.equal(rules.lockReason('D:\\$Recycle.Bin\\x', false), 'system');
+  assert.equal(rules.lockReason('D:\\$Recycle.Bin\\x', false), 'windowsOwn');
   assert.equal(rules.lockReason('C:\\Users\\Teddy', false), 'needed');
   assert.equal(rules.lockReason('C:\\Users\\Teddy\\Downloads', false), null);
 });

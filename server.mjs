@@ -75,6 +75,7 @@ const disk = createDiskService({
   rules: createDiskRules(config.disk, knownBloatList.folders),
   dataDir: join(root, 'data', 'disk'),
   recycleScript: join(root, 'ps', 'recycle.ps1'),
+  sizesScript: join(root, 'ps', 'sizes.ps1'),
   runPowerShell,
   broadcast,
   onLog: (entry) => {

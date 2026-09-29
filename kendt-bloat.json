@@ -33,6 +33,7 @@
   },
   "folders": {
     "node_modules": "npm-pakker til et kodeprojekt. Kan altid hentes igen med npm install.",
+    "System Volume Information": "Gendannelsespunkter og skyggekopier. Pladsen styres under Systembeskyttelse (sysdm.cpl), ikke ved at slette mappen.",
     "__pycache__": "Pythons cache af kompileret kode. Bygges op igen af sig selv.",
     "AppData\\Local\\Temp": "Midlertidige filer. Det meste kan ryddes; filer i brug bliver afvist.",
     "AppData\\Local\\CrashDumps": "Nedbrudsdumps fra programmer, der er gået ned.",

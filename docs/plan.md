@@ -30,6 +30,7 @@ Status: bygget · 2026-09-27 · verificeret mod koden
 | `lib/disk.mjs` | Diskscanner, træ, låse- og skraldregler, visningsudsnit |
 | `lib/disk-service.mjs` | Disk-ruter, gemte scanninger, genscanning, papirkurv, Stifinder |
 | `ps/recycle.ps1` | Papirkurv med kapacitetstjek (SHFileOperation) |
+| `ps/sizes.ps1` | Størrelser på låste filer via mappeoversigten; skyggekopiernes plads |
 | `ps/sampler.ps1` | Løkke: processer, vinduer, RAM, VRAM, GPU-motorer (hvert `gpuEveryTicks`. tick), tjeneste-PID'er, signaturer |
 | `ps/inventory.ps1` | Opstartsposter, tjenester, planlagte opgaver, admin-status |
 | `public/*` | UI |

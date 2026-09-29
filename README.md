@@ -58,7 +58,11 @@ Låst: processer og tjenester på `protectedProcesses`/`protectedServices`, samt
 
 ## Disk-fanen
 
-Vælg et drev eller skriv en mappe. Scanningen kører parallelt (`disk.concurrency` mapper ad gangen), og kortet tegnes undervejs. Junctions og symlinks følges ikke, og hardlinks tælles én gang. Størrelser er filernes egen størrelse, ikke pladsen på disken, så tallet kan være lidt lavere end det, Windows viser.
+Vælg et drev eller skriv en mappe. Scanningen kører parallelt (`disk.concurrency` mapper ad gangen), og kortet tegnes undervejs. Junctions og symlinks følges ikke, og hardlinks tælles én gang. Størrelser er filernes egen størrelse, ikke pladsen på disken.
+
+- **Låste filer:** filer, som Windows holder låst (`hiberfil.sys`, `pagefile.sys`, registreringsdatabasens filer), kan Node ikke åbne. Deres størrelse slås op bagefter i mappeoversigten via `ps/sizes.ps1`, så de tæller med.
+- **Gendannelsespunkter:** på et drevs rod hentes pladsen til skyggekopier (kræver administrator). Den vises som kassen *Gendannelsespunkter* i `System Volume Information`, som ingen må åbne.
+- **Statuslinjen** viser for drev "X fundet af Y brugt" og kan foldes ud. Den viser de mapper, der ikke kunne læses (højst 25), og antallet af filer uden størrelse. Resten er NTFS' egne data og afrunding til hele klynger.
 
 - **Samling:** filer og mapper under `disk.minItemMb` samles til "Små filer" i deres mappe. I visningen samles ting under `disk.minFraction` af udsnittet til "Andet".
 - **Gemt:** seneste scanning pr. rod ligger i `data/disk/` (`index.json` plus én fil pr. rod), så den åbner med det samme. "Scan denne mappe igen" genscanner kun den mappe.
@@ -77,6 +81,7 @@ Serveren kører som administrator, så den lytter kun på `127.0.0.1`. Den afvis
 - `server.mjs`: HTTP, SSE og livscyklus
 - `lib/disk.mjs`: scanner, træ, låse- og skraldregler og visningsudsnit. `lib/disk-service.mjs`: Disk-fanens ruter, gemte scanninger og papirkurv
 - `ps/recycle.ps1`: flytter til papirkurven efter kapacitetstjek
+- `ps/sizes.ps1`: størrelser på låste filer via mappeoversigten, plus pladsen til gendannelsespunkter
 - `public/`: `app.js` (Live, Opstart, Log), `disk.js` (Disk-fanen), `ui.js` (fælles hjælpere)
 - `lib/`: `parse` (rene parsere), `sampler` (CPU, RAM, GPU og VRAM pr. program), `classify` (mærker og score), `inventory` (opstart, tjenester, opgaver), `actions` (handlinger og fortryd), `guard` (sikkerhedstjek)
 - `ps/sampler.ps1`: løkken, der måler (kun ASCII, fordi PowerShell 5.1 læser UTF-8 uden BOM forkert)

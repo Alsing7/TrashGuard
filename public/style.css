@@ -285,6 +285,9 @@ button.chain-link { cursor: pointer; }
 
 .disk-status { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; min-height: 32px; margin: 14px 0 6px; color: var(--muted); font-size: 0.9rem; }
 .disk-scanning { color: var(--signal); }
+.disk-missing summary { cursor: pointer; }
+.disk-missing p, .disk-missing ul { margin: 6px 0 0; font-size: 0.85rem; }
+.disk-missing ul { padding-left: 18px; overflow-wrap: anywhere; }
 
 .disk-nav { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 0.92rem; }

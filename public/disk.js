@@ -469,9 +469,19 @@ function renderStatus() {
     return;
   }
   const when = new Date(entry.scannedAt).toLocaleString('da-DK', { dateStyle: 'short', timeStyle: 'short' });
-  const denied = entry.denied ? ` ${count(entry.denied)} ${entry.denied === 1 ? 'mappe' : 'mapper'} kunne ikke læses.` : '';
-  status.replaceChildren(
-    el('span', {}, `${entry.root} scannet ${when} (${ago(entry.scannedAt)}): ${count(entry.files)} filer, ${megabytes(entry.size)}, tog ${duration(entry.durationMs)}${denied}`),
+  // På et drev: sammenlign med det, Windows siger er brugt, og sig ærligt hvor resten er.
+  const drive = disk.drives.find((candidate) => lower(candidate.root) === lower(entry.root));
+  const found = drive ? `${megabytes(entry.size)} fundet af ${megabytes(drive.size - drive.free)} brugt` : megabytes(entry.size);
+  const missing = [
+    entry.denied ? `${count(entry.denied)} ${entry.denied === 1 ? 'mappe' : 'mapper'} uden adgang` : null,
+    entry.unreadable ? `${count(entry.unreadable)} ${entry.unreadable === 1 ? 'fil' : 'filer'} uden størrelse` : null,
+  ].filter(Boolean);
+  setChildren(status,
+    el('span', {}, `${entry.root} scannet ${when} (${ago(entry.scannedAt)}): ${count(entry.files)} filer, ${found}, tog ${duration(entry.durationMs)}`),
+    drive || missing.length ? el('details', { className: 'disk-missing' },
+      el('summary', {}, missing.length ? `Hvorfor mangler der noget? (${missing.join(', ')})` : 'Hvorfor er tallene forskellige?'),
+      el('p', {}, 'Resten er NTFS\' egne data (filtabellen og journalen), afrunding til hele klynger, og mapper som selv administrator ikke må åbne.'),
+      entry.deniedPaths?.length ? el('ul', {}, entry.deniedPaths.map((path) => el('li', {}, path))) : null) : null,
     el('button', { type: 'button', className: 'button button-small', onclick: (event) => startScan(entry.root, event.currentTarget) }, 'Scan hele drevet igen'));
 }
 
