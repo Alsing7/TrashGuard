@@ -1,0 +1,364 @@
+/* Live-fanen. Ejes af Live (docs/design.md, Live). Knapper, chips, callout, kontakt og segment står i style.css.
+   Boblernes mål (200 px skive, 18 px ring, 34 px "+N") hører sammen med FIELD i field.js. */
+#tab-live {
+  /* Bevægelse efter et tick (design.md: højst 600 ms). Hver overgang, der starter, koster stil, så field.js starter få. */
+  --move: 300ms cubic-bezier(0.3, 0.8, 0.3, 1);
+  --fade: 200ms;
+
+  /* ---------- Linser ---------- */
+
+  .lenses { display: flex; align-items: stretch; gap: 8px; }
+  .lens {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "name value spark" "top top spark";
+    align-items: center;
+    column-gap: 8px;
+    flex: 1 1 0;
+    min-width: 0;
+    margin-bottom: 8px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 18px;
+    background: var(--panel);
+    color: var(--text);
+    text-align: left;
+    transition: background-color 160ms;
+  }
+  .lens:hover { background: var(--raised); }
+  .lens-name { grid-area: name; font: 600 0.85rem var(--data); color: var(--c); }
+  .lens-value { grid-area: value; font: 600 1.1rem var(--data); white-space: nowrap; }
+  .lens-top { grid-area: top; display: flex; align-items: center; gap: 5px; min-width: 0; color: var(--muted); font-size: 0.78rem; }
+  .lens-top > .bi { color: var(--c); }
+  .lens-top-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lens-top b { font: 600 0.78rem var(--data); color: var(--text); white-space: nowrap; }
+  .lens-spark { grid-area: spark; width: clamp(56px, 8vw, 116px); height: 34px; }
+  .lens[aria-pressed="true"] { margin-bottom: 0; padding-bottom: 16px; border-radius: 18px 18px 0 0; background: var(--c); color: var(--ink); cursor: default; }
+  .lens[aria-pressed="true"] .lens-name { color: var(--ink); }
+  .lens[aria-pressed="true"] :is(.lens-value, .lens-top, .lens-spark) { visibility: hidden; }
+
+  /* ---------- Overskriften: fladen i den valgte linses farve ---------- */
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+    gap: 32px;
+    align-items: end;
+    padding: 12px 22px 14px;
+    border-radius: var(--radius-card);
+    background: var(--c);
+    color: var(--ink);
+  }
+  .hero[data-at="0"] { border-top-left-radius: 0; }
+  .hero[data-at="3"] { border-top-right-radius: 0; }
+  .hero-main { min-width: 0; }
+  .hero-number { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+  .headline { margin: 0; font: 400 clamp(2.8rem, 4.6vw, 4.2rem)/0.95 var(--display); letter-spacing: -0.03em; white-space: nowrap; }
+  .headline-unit { margin-left: 0.08em; font-size: 0.42em; letter-spacing: 0; }
+  .top-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+    height: 30px;
+    margin: 0;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    background: var(--ink);
+    color: var(--c);
+    font: 600 0.82rem var(--data);
+  }
+  .top-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-family: var(--body); }
+  .top-user b { white-space: nowrap; }
+  .headline-text { margin: 6px 0 10px; font-weight: 600; font-size: 0.92rem; }
+
+  .meter { position: relative; height: 12px; overflow: hidden; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--ink) 14%, transparent); }
+  .meter span { position: absolute; inset: 0; border-radius: var(--radius-pill); transform: translateX(-100%); transition: transform var(--move); }
+  .meter-bg { background: var(--ink); }
+  .meter-rest { background: color-mix(in srgb, var(--ink) 40%, transparent); }
+  .meter-labels { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 6px 0 0; font: 600 0.78rem var(--data); }
+  .meter-key { display: inline-flex; align-items: center; gap: 6px; }
+  .meter-key::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+  .meter-key.is-rest::before { background: color-mix(in srgb, var(--ink) 40%, transparent); }
+  .meter-total { margin-left: auto; }
+
+  /* Kurven over 5 minutter. Den er også spol tilbage: mus, træk eller piletaster. */
+  .hero-graph { min-width: 0; margin: 0; }
+  .curve { position: relative; height: 104px; border-radius: 8px; cursor: crosshair; touch-action: pan-y; }
+  .curve:focus-visible { outline-color: var(--ink); }
+  .curve-canvas { display: block; width: 100%; height: 100%; }
+  .scrub { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; margin-left: -1px; background: var(--ink); opacity: 0; pointer-events: none; transition: opacity 120ms; }
+  .curve.is-scrubbing .scrub { opacity: 1; }
+  .scrub-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 3px 11px;
+    border-radius: var(--radius-pill);
+    background: var(--ink);
+    color: var(--text);
+    font: 500 0.78rem var(--data);
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+  .scrub-label b { color: var(--c); font-weight: 600; }
+  .scrub.is-left .scrub-label { transform: none; }
+  .scrub.is-right .scrub-label { transform: translateX(-100%); }
+  .axis { display: flex; justify-content: space-between; margin-top: 4px; font: 600 0.75rem var(--data); }
+
+  /* ---------- Felt, liste og detalje ---------- */
+
+  /* Bred skærm: feltet har en fast bredde, så et valg aldrig flytter boblerne; detaljen er en tredje kolonne. */
+  .live { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 20px; }
+  .field { grid-column: 1; grid-row: 1; position: sticky; top: 16px; height: clamp(420px, calc(100vh - 300px), 760px); overflow: hidden; contain: strict; border-radius: var(--radius-card); background: var(--panel); }
+  .list { grid-column: 2 / 4; grid-row: 1; min-width: 0; }
+  .has-detail .list { grid-column: 2; }
+  .detail {
+    grid-column: 3;
+    grid-row: 1;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    container-type: inline-size;
+    padding: 18px 20px 20px;
+    border-radius: var(--radius-card);
+    background: var(--panel);
+  }
+
+  /* ---------- Boblerne ---------- */
+
+  /* Boblerne er span med role="button", ikke button: en overgang på en button koster mere stilberegning pr. billede. */
+  .bubble {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform var(--move), opacity var(--fade);
+  }
+  /* Usynligt klikområde, så selv en lille ring er mindst 24 px at ramme. */
+  .bubble::before { content: ""; position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; border-radius: 50%; }
+  .bubble-disc {
+    position: absolute;
+    left: -100px;
+    top: -100px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: var(--c);
+    transform: scale(0);
+    transition: transform var(--move);
+  }
+  .bubble-ring { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border: 2px solid var(--c); border-radius: 50%; opacity: 0; }
+  .bubble:hover .bubble-disc { background: color-mix(in srgb, var(--c) 85%, var(--text)); }
+  /* Hvile og aktiv skifter uden fade (en fade pr. skift kostede 1,4 ms stil pr. tick); skiven vokser stadig fra ringen. */
+  :is(.is-resting, .is-stopped) .bubble-disc { opacity: 0; }
+  :is(.is-resting, .is-stopped) .bubble-ring { opacity: 1; }
+  .is-stopped .bubble-ring { border-style: dashed; }
+  .bubble-more .bubble-ring { left: -17px; top: -17px; width: 34px; height: 34px; border: 2px dashed var(--muted); opacity: 1; }
+  .bubble-more::before { left: -17px; top: -17px; width: 34px; height: 34px; }
+  .bubble.is-gone { opacity: 0; pointer-events: none; }
+  .bubble.is-popping { pointer-events: none; animation: live-burst 520ms ease-in forwards; }
+
+  .bubble-label { position: absolute; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.1; text-align: center; white-space: nowrap; pointer-events: none; transform: translate(-50%, -50%); }
+  .bubble-name { overflow: hidden; text-overflow: ellipsis; font: 600 11px var(--data); font-stretch: 87.5%; }
+  .bubble-value { font: 400 11px var(--data); }
+  .bubble-label[data-size="none"] { display: none; }
+  .bubble-label[data-size="s"] .bubble-name { max-width: 50px; }
+  .bubble-label[data-size="s"] .bubble-value { display: none; }
+  .bubble-label[data-size="m"] .bubble-name { max-width: 70px; font-size: 12px; }
+  .bubble-label[data-size="l"] .bubble-name { max-width: 100px; font-size: 15px; }
+  .bubble-label[data-size="l"] .bubble-value { font-size: 12px; }
+  .bubble-label[data-size="xl"] .bubble-name { max-width: 150px; font-size: 20px; }
+  .bubble-label[data-size="xl"] .bubble-value { font-size: 15px; }
+  .bubble-label[data-size="more"] { color: var(--muted); }
+  .bubble-label[data-size="more"] .bubble-name { font-size: 12px; }
+
+  .bubble-badge {
+    position: absolute;
+    top: -11px;
+    left: -11px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--panel);
+    border-radius: 50%;
+    background: var(--junk);
+    color: var(--ink);
+    font-size: 11px;
+    pointer-events: none;
+    transition: transform var(--move);
+  }
+  /* En ring er for lille til mærket; listen viser Kendt bloat. */
+  :is(.is-resting, .is-stopped) .bubble-badge { display: none; }
+
+  /* Den valgte boble: en hvid ring med luft, tegnet som to skiver inde i boblen bag skiven. */
+  .field-halo { position: absolute; top: -100px; left: -100px; width: 200px; height: 200px; border-radius: 50%; background: var(--text); pointer-events: none; transition: transform var(--move); }
+  .field-halo.is-inner { background: var(--panel); }
+
+  .field-legend { position: absolute; z-index: 3; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+  .field-legend button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 28px;
+    padding: 0 11px 0 9px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--ground);
+    color: var(--text);
+    font: 600 0.8rem var(--body);
+    pointer-events: auto;
+  }
+  .field-legend button::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+  .field-legend b { color: var(--muted); font: 600 0.78rem var(--data); }
+  .field-legend button:hover { background: var(--raised); }
+
+  /* ---------- Listen ---------- */
+
+  .section + .section { margin-top: 4px; }
+  .section summary {
+    display: grid;
+    grid-template-columns: 12px minmax(0, max-content) auto auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 4px 12px;
+    border-radius: 14px;
+    list-style: none;
+    cursor: pointer;
+  }
+  .section summary::-webkit-details-marker { display: none; }
+  .section summary:hover { background: var(--panel); }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); transition: transform 160ms; }
+  .section:not([open]) .dot { transform: scale(0.6); }
+  .section-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 1.05rem var(--display); }
+  .count { color: var(--muted); font: 600 0.82rem var(--data); }
+  .section-chevron { color: var(--muted); font-size: 0.75rem; transition: transform 160ms; }
+  .section[open] .section-chevron { transform: rotate(90deg); }
+  /* Kolonnetitlerne er lige så brede som rækkernes tal; en sammenfoldet sektion giver navnet pladsen. */
+  .col-head { grid-column: 6; width: 64px; color: var(--muted); font: 500 0.75rem var(--data); text-align: right; }
+  .col-head.is-second { grid-column: 7; }
+  .section:not([open]) .col-head { display: none; }
+  .rows { margin: 0 0 8px; padding: 0; list-style: none; }
+
+  .row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 64px 64px;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 14px;
+    background: none;
+    text-align: left;
+  }
+  .row:hover { background: var(--panel); }
+  .row[aria-current="true"] { background: var(--raised); outline: 2px solid var(--text); outline-offset: -2px; }
+  .row-main { min-width: 0; }
+  .row-title { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .row-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.93rem; }
+  .row-exe { flex: 0 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.8rem; }
+  .row.is-stopped .row-name { color: var(--muted); }
+  .row-chips { flex-wrap: nowrap; margin-top: 3px; overflow: hidden; }
+  .row-chips .chip { flex-shrink: 1; min-width: 0; overflow: hidden; }
+  .chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .row-chips:empty { display: none; }
+  .row-number { font: 600 0.92rem var(--data); text-align: right; white-space: nowrap; }
+  .row-number.is-second { color: var(--muted); font-weight: 400; }
+
+  /* ---------- Detaljen ---------- */
+
+  .detail-top { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .detail-top .chip { height: 26px; padding: 0 11px; font-weight: 700; font-size: 0.8rem; }
+  .detail-close { margin-left: auto; }
+  .detail-title { font: 700 1.6rem/1.12 var(--data); font-stretch: 87.5%; overflow-wrap: anywhere; }
+  .detail-title:focus { outline: none; }
+  .detail-title:focus-visible { outline: 2px solid var(--text); }
+  .detail-sub { margin: 4px 0 0; color: var(--muted); font-size: 0.86rem; overflow-wrap: anywhere; }
+  .detail .chips { margin-top: 10px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 16px 0 0; }
+  .stat { min-width: 0; padding: 9px 11px; border-radius: 16px; background: var(--ground); transition: background-color 160ms; }
+  .stat dt { color: var(--c); font: 600 0.75rem var(--data); }
+  .stat dd { margin: 0; }
+  .stat-value { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 1.2rem/1.2 var(--data); }
+  .stat-second { display: block; min-height: 1.2em; color: var(--muted); font: 400 0.75rem var(--data); white-space: nowrap; }
+  .stat.is-lens { background: var(--c); color: var(--ink); }
+  .stat.is-lens :is(dt, .stat-second) { color: var(--ink); }
+  .spark { display: block; width: 100%; height: 54px; margin-top: 10px; }
+
+  .chain { margin: 16px 0 0; padding: 0; list-style: none; }
+  .chain li { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-height: 30px; padding-left: 26px; font-size: 0.88rem; overflow-wrap: anywhere; }
+  .chain li::before { content: ""; position: absolute; z-index: 1; top: 15px; left: 6px; width: 12px; height: 12px; margin-top: -6px; border: 2.5px solid var(--muted); border-radius: 50%; background: var(--panel); }
+  .chain li + li::after { content: ""; position: absolute; bottom: calc(100% - 15px); left: 11px; width: 2px; height: 30px; background: var(--line); }
+  .chain .is-source::before { border-color: var(--text); background: var(--text); }
+  .chain .is-self { font-weight: 700; }
+  .chain .is-self::before { left: 4px; width: 16px; height: 16px; margin-top: -8px; border: 0; background: var(--c); }
+  .chain-kind { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font: 600 0.78rem var(--data); }
+  .chain button { min-height: 26px; margin-left: -8px; padding: 2px 8px; border: 0; border-radius: 8px; background: none; text-decoration: underline; text-decoration-color: var(--muted); text-underline-offset: 3px; }
+  .chain button:hover { background: var(--raised); }
+
+  .meta { display: flex; flex-direction: column; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.8rem; overflow-wrap: anywhere; }
+  .meta li { display: flex; gap: 8px; }
+  .meta .bi { margin-top: 2px; }
+
+  .actions { display: flex; flex-direction: column; margin-top: 16px; border-top: 2px solid var(--ground); }
+  .action { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; padding: 11px 0; border-bottom: 2px solid var(--ground); }
+  .action-text { display: flex; align-items: center; gap: 10px; flex: 1 1 180px; min-width: 0; margin: 0; font-size: 0.9rem; }
+  .action-text > .bi { color: var(--muted); font-size: 1.05rem; }
+  .action-text b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+  .action-text small { display: block; color: var(--muted); font-size: 0.78rem; }
+
+  @container (max-width: 400px) {
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1180px) {
+    .detail-back { display: none; }
+  }
+
+  /* Smallere: feltet til venstre og listen til højre; detaljen tager listens plads. */
+  @media (max-width: 1179px) {
+    .live { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .list, .has-detail .list, .detail { grid-column: 2; }
+    .has-detail .list { display: none; }
+    .detail { position: static; max-height: none; overflow: visible; }
+  }
+
+  @media (max-width: 899px) {
+    .live { grid-template-columns: minmax(0, 1fr); }
+    .field { position: relative; top: auto; height: 380px; }
+    .field, .list, .has-detail .list, .detail { grid-column: 1; grid-row: auto; }
+  }
+
+  @media (max-width: 720px) {
+    .lens { grid-template-columns: minmax(0, 1fr); grid-template-areas: "name" "value"; padding: 8px 10px; border-radius: 14px; }
+    .lens-top, .lens-spark { display: none; }
+    .lens-value { font-size: 0.92rem; }
+    .lens[aria-pressed="true"] { padding-bottom: 14px; border-radius: 14px 14px 0 0; }
+    .hero { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px 16px 14px; border-radius: 22px; }
+    .headline { font-size: 3.4rem; }
+    .curve { height: 72px; }
+    .field { border-radius: 22px; }
+    .section summary { padding: 4px 6px; }
+    .col-head { width: 54px; }
+    .row-title { flex-wrap: wrap; }
+    .row { grid-template-columns: minmax(0, 1fr) 54px 54px; padding: 6px; }
+    .detail { padding: 16px; border-radius: 22px; }
+  }
+}
+
+@keyframes live-burst {
+  30% { scale: 1.25; opacity: 1; }
+  100% { scale: 0; opacity: 0; }
+}

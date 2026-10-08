@@ -1,0 +1,25 @@
+/* Log-fanen. Ejes af Fundament (docs/design.md). */
+#tab-log {
+  .log { list-style: none; max-width: 860px; margin: 0; padding: 0; }
+  .log-day + .log-day { margin-top: 22px; }
+  .log-day-title { margin: 6px 0 8px 16px; font: 400 1.05rem var(--display); }
+  .log-entries { list-style: none; margin: 0; padding: 4px 0; border-radius: 22px; background: var(--panel); }
+  .log-entry { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 16px; }
+  .log-entry + .log-entry { border-top: 2px solid var(--ground); }
+  .log-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--raised); color: var(--text); font-size: 1.2rem; }
+  .log-icon.is-danger { background: var(--danger); color: var(--ink); }
+  .log-text { min-width: 0; }
+  .log-label { display: block; font-weight: 600; overflow-wrap: anywhere; }
+  .log-text time { display: block; color: var(--muted); font: 400 0.8rem var(--data); }
+  .log-state { color: var(--muted); font-size: 0.82rem; text-align: right; }
+  .is-undone .log-label { color: var(--muted); text-decoration: line-through; }
+  .is-undone .log-icon { background: none; border: 2px solid var(--line); color: var(--muted); }
+  .log-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 60px 20px; color: var(--muted); text-align: center; }
+  .log-empty .bi { font-size: 2rem; }
+
+  @media (max-width: 720px) {
+    .log-entry { grid-template-columns: 36px minmax(0, 1fr); gap: 4px 12px; padding: 10px 12px; }
+    .log-icon { width: 36px; height: 36px; font-size: 1rem; }
+    .log-entry > :last-child { grid-column: 2; justify-self: start; text-align: left; }
+  }
+}

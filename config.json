@@ -14,6 +14,13 @@
     "gpuPercent": 2,
     "vramMb": 500
   },
+  "boot": {
+    "sessions": 10,
+    "explorerWaitSeconds": 30,
+    "slowerFactor": 2,
+    "slowerMinSeconds": 5,
+    "failedServiceWindowSeconds": 300
+  },
   "disk": {
     "concurrency": 16,
     "minItemMb": 1,

@@ -1,0 +1,207 @@
+/* Disk-fanen. Ejes af Disk (docs/design.md). */
+
+/* Kortets flader. disk.js læser dem med cssColor (derfor hex) og tegner alle etiketter på dem i --text.
+   --tile-0..4 er tonerne for mapperne øverst i udsnittet (indigo, blå, lilla, petrol, blomme); disk.js gør en mappe
+   mørkere for hvert niveau, der er tegnet inde i den, hvilket kun hæver kontrasten. Tjek med `node tools/palette-check.mjs`. */
+:root {
+  --tile-0: #6455da;
+  --tile-1: #3366cc;
+  --tile-2: #8a4dd6;
+  --tile-3: #177684;
+  --tile-4: #a8429b;
+  --tile-dim: #332d82;
+  --junk-fill: #846a39;
+  --junk-soft: #635336;
+  --locked-fill: #3d4566;
+}
+
+#tab-disk {
+  /* ---------- Drev og sti ---------- */
+
+  .disk-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  .drives { display: flex; flex-wrap: wrap; gap: 8px; }
+  .drive {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    width: 232px;
+    padding: 10px 14px 10px 10px;
+    border: 0;
+    border-radius: 20px;
+    background: var(--panel);
+    text-align: left;
+    transition: background-color 150ms, color 150ms;
+  }
+  .drive:hover { background: var(--raised); }
+  .drive[aria-pressed="true"] { background: var(--text); color: var(--ink); }
+  .drive-text { min-width: 0; }
+  .drive-name { display: block; overflow: hidden; font: 700 1rem var(--data); text-overflow: ellipsis; white-space: nowrap; }
+  .drive-sub { display: block; overflow: hidden; color: var(--muted); font: 400 0.76rem/1.35 var(--data); text-overflow: ellipsis; white-space: nowrap; }
+  .drive[aria-pressed="true"] .drive-sub { color: color-mix(in srgb, var(--ink) 78%, var(--text)); }
+
+  /* Ringen står på sin egen mørke skive, så den læses ens på det valgte (hvide) drev og de andre. */
+  .drive-ring { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--ground); color: var(--text); }
+  .drive-ring > .bi { font-size: 1.3rem; color: var(--muted); }
+  .drive-ring b { font: 600 0.78rem var(--data); }
+  .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 6; }
+  .ring-track { stroke: var(--raised); }
+  .ring-used { stroke: var(--text); stroke-linecap: round; }
+  .is-full .ring-used { stroke: var(--danger); }
+
+  .disk-path { display: flex; gap: 8px; align-items: center; }
+  .disk-input {
+    height: 44px;
+    min-width: 240px;
+    padding: 0 18px;
+    border: 2px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--ground);
+    color: var(--text);
+  }
+  .disk-input::placeholder { color: var(--muted); }
+  .disk-input:focus-visible { border-color: var(--text); outline: none; }
+  .disk-path .button { min-height: 44px; }
+
+  /* ---------- Status ---------- */
+
+  /* align-content: flex-start holder chiprækken på plads, når forklaringen folder ud på en ny linje. */
+  .disk-status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; align-content: flex-start; min-height: 36px; margin: 16px 0 12px; }
+  .disk-status:empty { min-height: 0; margin-bottom: 0; }
+  .disk-status .chip { height: 28px; padding: 0 12px; font-size: 0.8rem; }
+  .disk-rescan-all { margin-left: auto; }
+  /* Lange stier må bryde, så chippen aldrig giver vandret scroll. */
+  .disk-status .disk-scanning, .disk-status .disk-why { height: auto; padding-block: 4px; min-height: 28px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+  .disk-why { border: 0; }
+  .disk-why:hover { background: var(--raised); }
+  .disk-why > .bi:last-child { font-size: 0.7rem; transition: transform 150ms; }
+  .disk-why[aria-expanded="true"] > .bi:last-child { transform: rotate(90deg); }
+  /* Forklaringen er det sidste i rækken og fylder hele bredden, så den står på sin egen linje under chippen. */
+  .disk-why-body { flex-basis: 100%; padding: 12px 16px; border-radius: 16px; background: var(--panel); color: var(--muted); font-size: 0.85rem; }
+  .disk-why-body strong { display: block; margin-bottom: 4px; color: var(--text); font-weight: 600; }
+  .disk-why-body p { max-width: 680px; margin: 0; }
+  .disk-why-body ul { margin: 8px 0 0; padding-left: 18px; color: var(--text); font: 400 0.8rem var(--data); overflow-wrap: anywhere; }
+
+  /* ---------- Brødkrummer og visning ---------- */
+
+  .disk-nav { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .disk-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; min-width: 0; }
+  .disk-crumbs > .bi { color: var(--muted); font-size: 0.75rem; }
+  .crumb { min-height: 32px; padding: 0 10px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--muted); font: 600 0.92rem var(--data); }
+  .crumb:hover { background: var(--panel); color: var(--text); }
+  .crumb-current { padding: 0 10px; font: 400 1.25rem var(--display); overflow-wrap: anywhere; }
+  .disk-modes { padding: 4px; background: var(--panel); }
+  .disk-modes button { min-height: 34px; padding: 0 14px; font-size: 0.88rem; }
+
+  /* ---------- Kortet ---------- */
+
+  .disk-main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+  .disk-main.is-empty { grid-template-columns: minmax(0, 1fr); }
+  .disk-map { position: relative; height: clamp(380px, calc(100vh - 330px), 700px); overflow: hidden; border-radius: var(--radius-card); background: var(--panel); }
+  .disk-map canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+  .disk-tip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 360px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: var(--text);
+    color: var(--ink);
+    font-size: 0.82rem;
+    pointer-events: none;
+  }
+  .disk-tip strong { font: 600 0.9rem var(--data); }
+  .disk-tip span { color: color-mix(in srgb, var(--ink) 80%, var(--text)); overflow-wrap: anywhere; }
+
+  .disk-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 100%; padding: 24px; text-align: center; }
+  .disk-empty-icon { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; background: var(--raised); font-size: 2rem; }
+  .disk-empty h2 { font: 400 1.5rem var(--display); overflow-wrap: anywhere; }
+  .disk-empty p { max-width: 460px; margin: 0; color: var(--muted); }
+  .disk-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
+
+  /* ---------- Detaljepanelet ---------- */
+
+  .disk-detail { padding: 22px; border-radius: var(--radius-card); background: var(--panel); }
+  .disk-detail-title { font: 400 1.2rem var(--display); overflow-wrap: anywhere; }
+  .disk-size { margin: 12px 0 0; font: 400 2.6rem/1 var(--display); letter-spacing: -0.02em; }
+  .disk-size small { margin-left: 0.1em; font-size: 0.45em; }
+  .disk-sub { margin: 6px 0 0; color: var(--muted); font: 400 0.85rem var(--data); overflow-wrap: anywhere; }
+  .disk-sub:empty { display: none; }
+  .disk-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+  .disk-detail .lock-note { align-items: flex-start; margin-top: 12px; }
+  .disk-detail .lock-note > .bi { flex-shrink: 0; margin-top: 3px; }
+
+  .disk-list-title { margin: 24px 0 6px; font: 400 1rem var(--display); }
+  .disk-list { list-style: none; margin: 0 -10px; padding: 0; }
+  .disk-row {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 7px 10px 14px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    text-align: left;
+    font-size: 0.88rem;
+  }
+  /* Den tynde bjælke er andelen af det største i listen (--share sættes af disk.js). */
+  .disk-row::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    bottom: 6px;
+    width: max(3px, calc((100% - 20px) * var(--share, 0)));
+    height: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--c, var(--muted));
+  }
+  .disk-row:hover, .disk-row[aria-current="true"] { background: var(--raised); }
+  .disk-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .disk-row-size { font: 600 0.85rem var(--data); white-space: nowrap; }
+  .disk-row.is-junk { --c: var(--junk); }
+  .disk-row.is-junk .disk-row-name { color: var(--junk); }
+  .disk-more { margin-top: 6px; }
+  .disk-more > .bi { font-size: 0.7rem; transform: rotate(90deg); }
+
+  /* ---------- Legende ---------- */
+
+  .disk-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 14px 0 0; color: var(--muted); font-size: 0.82rem; }
+  .disk-legend > span { display: inline-flex; align-items: center; gap: 7px; }
+  /* Kanten i --muted giver prøven 3:1 mod bunden, også når fladen selv er mørk. */
+  .disk-swatch { display: inline-flex; width: 16px; height: 16px; overflow: hidden; border: 2px solid var(--muted); border-radius: 5px; }
+  .disk-swatch.is-junk { background: var(--junk-fill); }
+  .disk-swatch.is-tones i { flex: 1; background: var(--tile-0); }
+  .disk-swatch.is-tones i:nth-child(2) { background: var(--tile-1); }
+  .disk-swatch.is-tones i:nth-child(3) { background: var(--tile-2); }
+  /* Samme skravering som på kortet (disk.js tegner den med et canvas-mønster). */
+  .disk-swatch.is-locked {
+    background: var(--locked-fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M-8 8L0 0M0 8L8 0M8 8L16 0' stroke='%23f6f4ff' stroke-opacity='.13' stroke-width='1.5'/%3E%3C/svg%3E");
+  }
+  .disk-legend-hint { margin-left: auto; }
+
+  @media (max-width: 900px) {
+    .disk-main { grid-template-columns: minmax(0, 1fr); }
+    .disk-map { height: 60vh; min-height: 340px; }
+    .disk-path { width: 100%; }
+    .disk-input { flex: 1; min-width: 0; }
+    .disk-legend-hint { margin-left: 0; }
+  }
+
+  @media (max-width: 720px) {
+    .drives { width: 100%; }
+    .drive { width: 100%; grid-template-columns: 44px minmax(0, 1fr); padding: 8px 14px 8px 8px; }
+    .drive-ring { width: 44px; height: 44px; }
+    .drive-ring b { font-size: 0.74rem; }
+    .disk-rescan-all { margin-left: 0; }
+    .disk-map { border-radius: 22px; }
+    .disk-detail { padding: 18px 16px; border-radius: 22px; }
+    .disk-size { font-size: 2.2rem; }
+  }
+}

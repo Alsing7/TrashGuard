@@ -16,6 +16,7 @@ import { planAction, planUndo, runSteps, createJsonStore, logEntry, appendLog } 
 import { hostAllowed, originAllowed, tokenMatches } from './lib/guard.mjs';
 import { createDiskRules } from './lib/disk.mjs';
 import { createDiskService } from './lib/disk-service.mjs';
+import { summarizeBoots } from './lib/boot.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const readJson = (file) => JSON.parse(readFileSync(join(root, file), 'utf8'));
@@ -32,12 +33,11 @@ const MAX_BODY_BYTES = 10 * 1024;
 const PERCENT_DECIMALS = 100;
 const BYTES_PER_MB = 1048576;
 const MEMORY_LENSES = new Set(['ram', 'vram']);
-const STATIC_FILES = {
-  '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
-  '/style.css': ['style.css', 'text/css; charset=utf-8'],
-  '/ui.js': ['ui.js', 'text/javascript; charset=utf-8'],
-  '/disk.js': ['disk.js', 'text/javascript; charset=utf-8'],
-};
+const STATIC_TYPES = { js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8' };
+const STATIC_FILES = Object.fromEntries([
+  'app.js', 'ui.js', 'live.js', 'field.js', 'startup.js', 'disk.js', 'log.js',
+  'style.css', 'icons.css', 'live.css', 'startup.css', 'disk.css', 'log.css',
+].map((file) => [`/${file}`, [file, STATIC_TYPES[file.split('.').pop()]]]));
 const SECURITY_HEADERS = {
   'Cache-Control': 'no-store',
   'X-Content-Type-Options': 'nosniff',
@@ -57,6 +57,7 @@ const sampler = createSampler({ cores, historyLength: config.historyLength, minA
 
 const state = {
   inventory: null,
+  boot: null,
   meta: new Map(),
   servicesByPid: new Map(),
   groups: [],
@@ -87,6 +88,7 @@ const disk = createDiskService({
 let samplerProcess = null;
 let shutdownTimer = null;
 let inventoryRefresh = null;
+let bootRefresh = null;
 
 // ---------- Visning til klienten ----------
 
@@ -131,8 +133,10 @@ function snapshot() {
     history: Object.fromEntries(state.groups.map((group) => [group.key,
       Object.fromEntries(LENSES.map((lens) => [lens, group.history[lens].map((value) => lensUnit(lens, value))]))])),
     headlineHistory: state.headlineHistory,
+    historyLength: config.historyLength,
     headlines: state.headlines, totals: state.totals,
     inventory: inventoryView(),
+    boot: state.boot,
     log: state.log,
     protectedServices: [...protectedServices],
     disk: disk.state(),
@@ -232,6 +236,18 @@ function refreshInventory() {
   return inventoryRefresh;
 }
 
+// Opstarter ændrer sig kun ved genstart, så den læses ved start og på "Opdatér".
+function refreshBoot() {
+  bootRefresh ??= runPowerShell(join(root, 'ps', 'boot.ps1'), ['-Sessions', String(config.boot.sessions)])
+    .then((output) => {
+      state.boot = summarizeBoots(parseJsonLine(output), config.boot);
+      broadcast('boot', state.boot);
+    })
+    .catch((error) => broadcast('problem', { message: `Kunne ikke læse opstartstiderne: ${error.message}` }))
+    .finally(() => { bootRefresh = null; });
+  return bootRefresh;
+}
+
 // ---------- Livscyklus ----------
 
 function scheduleShutdown(delayMs) {
@@ -295,7 +311,7 @@ const POST_ROUTES = {
   '/api/action': performAction,
   '/api/undo': performUndo,
   '/api/trust': toggleTrust,
-  '/api/refresh': async () => { await refreshInventory(); return [200, { message: 'Opdateret.' }]; },
+  '/api/refresh': async () => { await Promise.all([refreshInventory(), refreshBoot()]); return [200, { message: 'Opdateret.' }]; },
   ...disk.routes,
 };
 
@@ -369,4 +385,5 @@ server.listen(config.port, '127.0.0.1', () => {
   scheduleShutdown(config.firstClientTimeoutMs);
   if (!process.argv.includes('--no-browser')) openBrowser();
   refreshInventory();
+  refreshBoot();
 });

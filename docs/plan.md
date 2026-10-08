@@ -1,4 +1,4 @@
-Status: bygget · 2026-09-27 · verificeret mod koden
+Status: bygget · 2026-10-08 · verificeret mod koden
 
 # TrashGuard – implementeringsplan
 
@@ -33,10 +33,13 @@ Status: bygget · 2026-09-27 · verificeret mod koden
 | `ps/sizes.ps1` | Størrelser på låste filer via mappeoversigten; skyggekopiernes plads |
 | `ps/sampler.ps1` | Løkke: processer, vinduer, RAM, VRAM, GPU-motorer (hvert `gpuEveryTicks`. tick), tjeneste-PID'er, signaturer |
 | `ps/inventory.ps1` | Opstartsposter, tjenester, planlagte opgaver, admin-status |
-| `public/*` | UI |
+| `ps/boot.ps1` | De seneste opstarter fra eventloggen: starttype, logon, Run-tider, fejlede tjenester |
+| `lib/boot.mjs` | Opsummerer opstarterne: tid og starttidspunkt pr. post, median af de andre opstarter, mærker, `slower` pr. opstart |
+| `public/*` | UI: skal, ét modul og én CSS pr. fane, fælles hjælpere (se `docs/design.md`) |
+| `tools/icons.mjs`, `tools/palette-check.mjs` | Genererer `public/icons.css`; tjekker farvernes kontrast og ΔE |
 | `config.json` | Port, interval, tærskler, vægte, beskyttede navne |
 | `kendt-bloat.json` | Redigerbar liste over kendt bloat |
-| `test/core.test.mjs`, `test/disk.test.mjs` | `node --test` |
+| `test/core.test.mjs`, `test/disk.test.mjs`, `test/boot.test.mjs` | `node --test` |
 | `lav-genvej.ps1` | Genvej på skrivebordet med "Kør som administrator" |
 
 ## Opgaver
@@ -61,3 +64,12 @@ Fire linser (CPU, RAM, GPU, VRAM), valgt i en grill-session. GPU-motorer koster 
 
 ## Udvidelse: Disk (2026-09-27)
 Disk-fanen som SpaceSniffer, valgt i en grill-session: almindelig parallel filscanning (målt ca. 15.000 filer/s på C:; D: med 243.000 filer tog 27 sek.), seneste scanning gemt pr. rod, kasser og solstråle, "Flyt til papirkurv" med kapacitetstjek. MFT-læsning (som WizTree) er fravalgt, indtil ventetiden er et problem. Den kan skiftes ind bag `startScan` uden at røre klienten.
+
+## Udvidelse: Seneste opstart (2026-10-07)
+Brugeren ville se, hvad der gjorde opstarten langsom, uden at skulle spørge hver gang. Explorer starter Run-nøglerne én ad gangen og logger hver af dem i Shell-Core (9707/9708), så tiden pr. post kan måles direkte. Opstarten 2026-10-07 tog 2 min 26 s mod normalt 59 s, fordi SecurityHealthSystray og RtkAudUService64 begge ramte Explorers grænse på 30 s. Data læses kun ved start og på "Opdatér", fordi de kun ændrer sig ved en genstart.
+
+## Udvidelse: UI-overhaul (2026-10-07)
+Brugeren ville have en mere levende, minimalistisk UI med mindre tekst. En designkonkurrence med tre retninger endte med "Legeplads" (natblå flader, store farvede felter, boblefelt) med podninger fra "Instrumentbræt" og "Signal". `docs/design.md` er kontrakten. Fundamentet delte klienten i ét modul pr. fane bag en fast modulkontrakt (`mount`, `show`, `hide`, `on…`), så Live, Opstart og Disk kan skrives om parallelt uden at røre hinandens filer. Farverne er målt med `tools/palette-check.mjs` (alle 12 rollefarver mindst ΔE00 15 fra hinanden og 3:1 mod fladen), ikonerne genereres af `tools/icons.mjs`, og Log-fanen er færdig. `lib/boot.mjs` beholder nu hver opstartsposts starttidspunkt (til tidslinjen) og giver hver opstart et `slower`-flag efter samme regel som posterne.
+
+## Afslutning: UI-overhaul (2026-10-08)
+Live, Opstart og Disk blev bygget parallelt efter fundamentet, kontrolleret pr. fane og rettet. Til sidst blev fanernes fælles ønsker samlet i de fælles filer: faste talformattere og fokus tilbage efter en handling i `ui.js` (`run`), `chip()` med `label`, et canvas, der kun laver bufferen om ved ny størrelse, en kortere puls, og de gamle farvenavne er slettet. Fanernes lokale kopier af det (talformat i Live, `runHere` i Disk, `labeledChip` og `act` i Opstart) er fjernet. `docs/design.md` beskriver nu det, der er bygget, og README har et afsnit pr. fane. Live holder kravet på under 8 ms pr. tick i snit (målt 7,8 ms på en belastet maskine, 11 af 15 runder under 8 ms), men med lille margen (se design.md, Ydelse).
