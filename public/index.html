@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/live.css">
   <link rel="stylesheet" href="/startup.css">
   <link rel="stylesheet" href="/disk.css">
+  <link rel="stylesheet" href="/clean.css">
   <link rel="stylesheet" href="/log.css">
 </head>
 <body>
@@ -19,6 +20,7 @@
       <button type="button" role="tab" class="tab" id="tab-button-live" data-tab="live" aria-controls="tab-live" aria-selected="true">Live <span class="tab-pill" id="tab-live-value" data-res="cpu" hidden></span></button>
       <button type="button" role="tab" class="tab" id="tab-button-startup" data-tab="startup" aria-controls="tab-startup" aria-selected="false">Opstart <span class="tab-badge" id="tab-startup-dead" hidden></span><span class="tab-badge is-slow" id="tab-startup-slow" title="Seneste opstart var langsommere end normalt" hidden><span class="bi bi-graph-up-arrow" aria-hidden="true"></span><span class="visually-hidden">langsommere opstart</span></span></button>
       <button type="button" role="tab" class="tab" id="tab-button-disk" data-tab="disk" aria-controls="tab-disk" aria-selected="false">Disk</button>
+      <button type="button" role="tab" class="tab" id="tab-button-clean" data-tab="clean" aria-controls="tab-clean" aria-selected="false">Ryd op</button>
       <button type="button" role="tab" class="tab" id="tab-button-log" data-tab="log" aria-controls="tab-log" aria-selected="false">Log</button>
     </nav>
     <p class="status" id="status"><span class="beat" id="beat" aria-hidden="true"></span><span class="status-text" id="status-text">Forbinder…</span></p>
@@ -32,6 +34,7 @@
     <section class="panel" id="tab-live" role="tabpanel" aria-labelledby="tab-button-live"></section>
     <section class="panel" id="tab-startup" role="tabpanel" aria-labelledby="tab-button-startup" hidden></section>
     <section class="panel" id="tab-disk" role="tabpanel" aria-labelledby="tab-button-disk" hidden></section>
+    <section class="panel" id="tab-clean" role="tabpanel" aria-labelledby="tab-button-clean" hidden></section>
     <section class="panel" id="tab-log" role="tabpanel" aria-labelledby="tab-button-log" hidden></section>
   </main>
 

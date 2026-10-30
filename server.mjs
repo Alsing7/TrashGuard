@@ -36,8 +36,8 @@ const BYTES_PER_MB = 1048576;
 const MEMORY_LENSES = new Set(['ram', 'vram']);
 const STATIC_TYPES = { js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8' };
 const STATIC_FILES = Object.fromEntries([
-  'app.js', 'ui.js', 'live.js', 'field.js', 'startup.js', 'disk.js', 'log.js',
-  'style.css', 'icons.css', 'live.css', 'startup.css', 'disk.css', 'log.css',
+  'app.js', 'ui.js', 'live.js', 'field.js', 'startup.js', 'disk.js', 'clean.js', 'log.js',
+  'style.css', 'icons.css', 'live.css', 'startup.css', 'disk.css', 'clean.css', 'log.css',
 ].map((file) => [`/${file}`, [file, STATIC_TYPES[file.split('.').pop()]]]));
 const SECURITY_HEADERS = {
   'Cache-Control': 'no-store',

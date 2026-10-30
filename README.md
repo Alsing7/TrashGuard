@@ -98,10 +98,19 @@ Vælg et drev (hvert drev har en ring, der bliver rød over 90 % fyldt) eller sk
 - **Etiketter:** store blade får navn og størrelse med stor skrift, og solstrålen skriver navnene langs buen i de 2 inderste ringe. Et navn vises helt eller med mindst 6 tegn før "…".
 - **Farver:** okker = kendt skrald (`folders` i `kendt-bloat.json`; et mønster med `\` matcher stiens slutning, ellers mappens navn). Skravering på skifer = låst. Mapper som `Users` og din profil, der kun er låst selv, mens indholdet må ryddes, skraveres ikke. Resten har én tone pr. mappe øverst i udsnittet (indigo, blå, lilla, petrol, blomme), og en mappe, hvis indhold vises, er en mørkere ramme om det. Legenden siger Kendt skrald, Låst og Alt andet.
 - **Største indhold:** listen ved siden af kortet viser de 12 største og en "Vis alle N"-knap, når der er flere. Det er tastaturvejen til alt i udsnittet.
-- **Papirkurv** (to klik): TrashGuard måler tingen igen og beder derefter `ps/recycle.ps1` flytte den. Scriptet nægter, hvis papirkurven er slået fra på drevet, eller hvis tingen er større end papirkurvens maksimum (`CapacityMargin` i scriptet). I de tilfælde ville Windows nemlig slette permanent. Windows' egen advarsel om permanent sletning er slået til som sidste sikring. Handlingen logges og gendannes fra Windows' papirkurv.
+- **Papirkurv** (to klik): TrashGuard måler tingen igen og beder derefter `ps/recycle.ps1` flytte den. Scriptet nægter, hvis papirkurven er slået fra på drevet, hvis tingen er større end papirkurvens maksimum (`CapacityMargin` i scriptet), eller hvis det, der allerede ligger i papirkurven, plus det nye ikke kan være der. I de tilfælde ville Windows nemlig slette permanent: tingen selv eller de ældste ting i papirkurven. Windows' egen advarsel om permanent sletning er slået til som sidste sikring. Handlingen logges og gendannes fra Windows' papirkurv.
 - **Låst** (`disk.lockedTrees`, `disk.lockedExact`, `disk.lockedRootFolders`): drevrødder, filer direkte i en drevrod, Windows og Program Files med alt indhold, samt mapper som `Users`, din profil, `AppData`, `Desktop`, `Documents` og `Downloads` selv. Indholdet i de sidste må gerne ryddes.
 - **Åbn i Stifinder** åbner mappen med tingen markeret. Explorer starter som din almindelige bruger.
 - **Hvorfor mangler der noget?** er en chip i statuslinjen, der folder forklaringen ud.
+
+## Ryd op-fanen
+
+Kendte caches (`clean` i `kendt-bloat.json`) med størrelse. Vælg dem, der skal ryddes, og tryk **Papirkurv** to gange. Indholdet i mapperne flyttes til papirkurven; selve mapperne bliver stående. Fanen måler første gang, den vises, og igen på "Mål igen".
+
+- **Listen:** én række pr. program med `name`, `text` og `paths`. Stierne må bruge `%miljøvariabler%`, og `*` matcher ét stiled (fx alle browserprofiler). Rækker uden en eksisterende mappe vises ikke. Junctions og symlinks følges ikke, og låste stier (se Disk) springes over.
+- **Filer i brug** (fx Chromes cache, mens Chrome kører) springes over og tælles i svaret. Resten flyttes.
+- **Samme sikring som Disk:** `ps/recycle.ps1` med kapacitetstjek og tjek af papirkurvens fyld. Afviser den, stopper oprydningen.
+- Windows' egen Temp ryddes ikke, fordi Windows-mappen er låst.
 
 ## Log-fanen
 
@@ -114,11 +123,11 @@ Serveren kører som administrator, så den lytter kun på `127.0.0.1`. Den afvis
 ## Filer
 
 - `server.mjs`: HTTP, SSE og livscyklus
-- `lib/disk.mjs`: scanner, træ, låse- og skraldregler og visningsudsnit. `lib/disk-service.mjs`: Disk-fanens ruter, gemte scanninger og papirkurv
-- `ps/recycle.ps1`: flytter til papirkurven efter kapacitetstjek
+- `lib/disk.mjs`: scanner, træ, låse- og skraldregler og visningsudsnit. `lib/disk-service.mjs`: Disk-fanens ruter, gemte scanninger og papirkurv. `lib/clean.mjs`: Ryd op-fanens liste og oprydning
+- `ps/recycle.ps1`: flytter en liste til papirkurven efter tjek af kapacitet og fyld
 - `ps/sizes.ps1`: størrelser på låste filer via mappeoversigten, plus pladsen til gendannelsespunkter
 - `public/index.html`: skallen med topbjælke, bannere og fire tomme faner. `app.js`: strømmen fra serveren, den fælles tilstand, faneskift og topbjælken
-- `public/`: ét modul pr. fane, hver med sin CSS: `live.js` (overskrift, linser, liste, detalje) + `field.js` (boblefeltet) + `live.css` (Live), `startup.js` + `startup.css` (Opstart), `disk.js` + `disk.css` (Disk), `log.js` + `log.css` (Log). Kontrakten mellem app.js og fanerne står i `docs/design.md`
+- `public/`: ét modul pr. fane, hver med sin CSS: `live.js` (overskrift, linser, liste, detalje) + `field.js` (boblefeltet) + `live.css` (Live), `startup.js` + `startup.css` (Opstart), `disk.js` + `disk.css` (Disk), `clean.js` + `clean.css` (Ryd op), `log.js` + `log.css` (Log). Kontrakten mellem app.js og fanerne står i `docs/design.md`
 - `public/ui.js`: fælles hjælpere og kontroller (talformat, handlinger, bekræftelse, kontakt, chip, segment, tjenestekontrol, kurver). `public/style.css`: farver, grundstil og fælles komponenter. `public/icons.css`: Bootstrap Icons (MIT) som masker, genereret af `tools/icons.mjs`
 - `tools/palette-check.mjs`: regner kontrast og CIEDE2000 ΔE for farverne i `style.css` og kortets flader i `disk.css`
 - `docs/design.md`: designkontrakten for UI'en (farveroller, beslutninger, ydelse, modulkontrakt)
@@ -126,7 +135,7 @@ Serveren kører som administrator, så den lytter kun på `127.0.0.1`. Den afvis
 - `ps/sampler.ps1`: løkken, der måler (kun ASCII, fordi PowerShell 5.1 læser UTF-8 uden BOM forkert)
 - `ps/inventory.ps1`: læser opstartsposter, tjenester og opgaver
 - `ps/boot.ps1`: læser de seneste opstarter fra eventloggen. `lib/boot.mjs` opsummerer dem
-- `kendt-bloat.json`: redigér frit. Nøgler under `exe` matcher filnavnet, under `service` tjenestenavnet, og under `task` en del af opgavens sti og navn
+- `kendt-bloat.json`: redigér frit. Nøgler under `exe` matcher filnavnet, under `service` tjenestenavnet, og under `task` en del af opgavens sti og navn. `folders` farver kendt skrald i Disk, og `clean` er Ryd op-fanens liste
 - `test/`: `core`, `disk` og `boot` til `node --test`
 - `docs/plan.md`: implementeringsplanen
 

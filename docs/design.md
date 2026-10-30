@@ -66,7 +66,7 @@ Komponenter farves med `data-res="cpu|ram|gpu|vram"` eller `data-cat="suspect|yo
 
 ### Hele appen
 
-- Én topbjælke: logo, faner som pilleskinne (Live, Opstart, Disk, Log), status-prik og en rund Opdatér-ikonknap. Fanerne står altid på én linje: er der ikke plads, forkortes statusteksten med "…", og under 720 px får fanerne deres egen linje. Live-fanen viser den valgte linses tal, også på smal skærm (mindre pille, og fanerne deler bredden efter indholdet). Opstart-fanen viser et faremærke med antallet af døde opstartsposter (kun når det er over 0) og et `--slow`-mærke, når seneste opstart var langsommere end normalt.
+- Én topbjælke: logo, faner som pilleskinne (Live, Opstart, Disk, Ryd op, Log), status-prik og en rund Opdatér-ikonknap. Fanerne står altid på én linje: er der ikke plads, forkortes statusteksten med "…", og under 720 px får fanerne deres egen linje. Live-fanen viser den valgte linses tal, også på smal skærm (mindre pille, og fanerne deler bredden efter indholdet). Opstart-fanen viser et faremærke med antallet af døde opstartsposter (kun når det er over 0) og et `--slow`-mærke, når seneste opstart var langsommere end normalt.
 - Admin- og problembanneret er korte piller med ikon (Legeplads' tekst).
 - Toast: hvid pille med rundt ikon. `confirmButton` får et valgfrit ikon og en lunte: en 3 px streg i knappen, der løber ned over de 4 sekunder, bekræftelsen varer. Det er bevægelse som svar på en handling, og den slås fra ved reduced motion.
 - Kontakter (`role="switch"`) viser serverens tilstand. De skifter først, når inventory-eventet kommer, ikke ved klik. Mens kaldet kører, er kontakten deaktiveret.
@@ -110,6 +110,12 @@ Komponenter farves med `data-res="cpu|ram|gpu|vram"` eller `data-cat="suspect|yo
 - Detaljepanelet: titel (`tabindex="-1"`), stor størrelse, knaprække med ikoner (Åbn i Stifinder, Kopiér sti, Scan igen, Papirkurv med bekræftelse), låsenote og "Største indhold" som knapper med en tynd andelsbjælke: 12 rækker (`LIST_LIMIT`) og en "Vis alle N"-knap, når der er flere. Udsnittet har op til 80 børn (`disk.maxChildren` i config.json).
 - Tastatur og fokus: fokus bevares ved ombygning (`data-focus`). Backspace og brødkrummer sætter fokus på rækken, man kom fra; et klik ind i en mappe sætter det på første række. Detaljen bygges kun om, når dens indhold ændrer sig, så fokus og en bevæbnet Papirkurv overlever en scanning. Et svar fra en ældre sti kasseres (`fetchTicket`). Under scanning hentes udsnittet højst hvert 1500 ms.
 
+### Ryd op
+
+- Én liste i et panel: afkrydsning (rigtig `input type="checkbox"` i en `label`), navn med `text` som dæmpet anden linje, og størrelse i data-skrift. Stierne står i rækkens `title`. Sorteret efter størrelse, intet valgt fra start.
+- Hovedet: "Vælg alle" (også `indeterminate`), antal og samlet størrelse, og "Mål igen" som `icon-button-small`, der drejer under måling. Foden: "Valgt: X" og Papirkurv som `confirmButton` (`button-danger`, `trash3`), deaktiveret uden valg.
+- Et klik på en afkrydsning bygger kun hovedet og foden om, ikke listen, så fokus bliver stående.
+
 ### Log
 
 - Grupperet pr. dag (I dag, I går, ellers ugedag og dato som "Fredag 2. oktober", med årstal bagest, når det er et andet år). Hver post er én række med ikoncirkel, tekst, klokkeslæt og Fortryd. Ikke en stak ens afrundede kort.
@@ -130,12 +136,13 @@ Overhaulen er færdig, og ejerskabet nedenfor beskriver, hvem der byggede hvad, 
 
 | Fil | Ejer | Indhold |
 |---|---|---|
-| `public/index.html` | Fundament | Skallen: topbjælke, bannere, toast og fire tomme `section.panel` (`#tab-live`, `#tab-startup`, `#tab-disk`, `#tab-log`). Fanerne sætter selv deres markup ind i `mount()` |
+| `public/index.html` | Fundament | Skallen: topbjælke, bannere, toast og fem tomme `section.panel` (`#tab-live`, `#tab-startup`, `#tab-disk`, `#tab-clean`, `#tab-log`). Fanerne sætter selv deres markup ind i `mount()` |
 | `public/style.css` | Fundament | Tokens, grundstil, fælles komponenter (se nedenfor) |
 | `public/icons.css`, `tools/icons.mjs` | Fundament | Ikonmasker. `icons.css` er genereret: ret i `tools/icons.mjs` og kør `node tools/icons.mjs` |
 | `tools/palette-check.mjs` | Fundament | Tjekker farverne i `style.css` og kortets flader i `disk.css` (se Farveroller) |
 | `public/ui.js` | Fundament | Fælles hjælpere (se nedenfor) |
 | `public/app.js` | Fundament | Strømmen, den fælles tilstand, faneskift, topbjælke, bannere og fordelingen til fanerne |
+| `public/clean.js`, `public/clean.css` | Ryd op | Ryd op-fanen |
 | `public/log.js`, `public/log.css` | Fundament | Log-fanen, færdig |
 | `public/live.js`, `public/field.js`, `public/live.css` | Live | live.js: overskrift, linser, spol tilbage, liste, detalje. field.js: boblefeltet (`FIELD`), som live.js importerer |
 | `public/startup.js`, `public/startup.css` | Opstart | Seneste opstart, tidligere opstarter, opstartsposter, opgaver, tjenester |
@@ -201,7 +208,7 @@ Topbjælkens mærker på Opstart: `#tab-startup-dead` (antal døde poster i `--d
 
 ## Test
 
-- Fælles testværktøj: `...\scratchpad\harness\`. `node serve.mjs <port>` kører en frisk kopi af TrashGuard på en egen port (start den i baggrunden). `node shoot.cjs <port> <ud-mappe> [desktop|mobile|all]` tager billeder af alle faner og melder JS-fejl og vandret overløb. `browser.cjs` åbner en side, hvor alle kald, der ændrer noget på PC'en (`/api/action`, `/api/undo`, `/api/disk/recycle`, `/api/disk/reveal`, `/api/disk/scan`, `/api/disk/rescan`, `/api/disk/stop`), besvares falsk i browseren. Brug kun den, når du klikker på handlinger.
+- Fælles testværktøj: `...\scratchpad\harness\`. `node serve.mjs <port>` kører en frisk kopi af TrashGuard på en egen port (start den i baggrunden). `node shoot.cjs <port> <ud-mappe> [desktop|mobile|all]` tager billeder af alle faner og melder JS-fejl og vandret overløb. `browser.cjs` åbner en side, hvor alle kald, der ændrer noget på PC'en (`/api/action`, `/api/undo`, `/api/disk/recycle`, `/api/disk/reveal`, `/api/disk/scan`, `/api/disk/rescan`, `/api/disk/stop`; `/api/clean/run` er ikke med endnu, så test Ryd op mod en kopi med et falsk `clean`-katalog), besvares falsk i browseren. Brug kun den, når du klikker på handlinger.
 - Porte: fundamentet 4330, Live 4331, Opstart 4332, Disk 4333, gennemgang 4334-4338, afslutning 4350. Aldrig 4319, det er brugerens egen instans.
 - `node --test` i TrashGuard skal bestå.
 

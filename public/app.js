@@ -3,9 +3,10 @@ import { token, $, el, setChildren, run, lensValue, bindTablist } from './ui.js'
 import * as live from './live.js';
 import * as startup from './startup.js';
 import * as disk from './disk.js';
+import * as clean from './clean.js';
 import * as log from './log.js';
 
-const TABS = { live, startup, disk, log };
+const TABS = { live, startup, disk, clean, log };
 const LENS_KEYS = ['cpu', 'ram', 'gpu', 'vram'];
 const LENS_STORAGE_KEY = 'trashguard-lens';
 

@@ -1,0 +1,28 @@
+/* Ryd op-fanen (docs/design.md). */
+#tab-clean {
+  .clean { max-width: 860px; }
+  .clean-head, .clean-foot { display: flex; align-items: center; gap: 14px; padding: 10px 16px; }
+  .clean-all { display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
+  .clean-total { margin-left: auto; color: var(--muted); font: 400 0.85rem var(--data); font-variant-numeric: tabular-nums; }
+  .clean-list { list-style: none; margin: 0; padding: 4px 0; border-radius: 22px; background: var(--panel); }
+  .clean-list > li + li { border-top: 2px solid var(--ground); }
+  .clean-list > .callout { margin: 0; border-radius: 22px; }
+  .clean-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 16px; cursor: pointer; }
+  .clean-row:hover { background: var(--raised); }
+  .clean-list > li:first-child .clean-row { border-radius: 22px 22px 0 0; }
+  .clean-list > li:last-child .clean-row { border-radius: 0 0 22px 22px; }
+  .clean-list > li:only-child .clean-row { border-radius: 22px; }
+  .clean-name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+  .clean-text { display: block; color: var(--muted); font-size: 0.82rem; font-weight: 400; }
+  .clean-size { font: 600 1rem var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .clean-foot { justify-content: flex-end; }
+  .clean-chosen { color: var(--muted); font: 400 0.9rem var(--data); font-variant-numeric: tabular-nums; }
+  input[type="checkbox"] { width: 20px; height: 20px; margin: 0; accent-color: var(--text); cursor: pointer; }
+  input[type="checkbox"]:disabled { cursor: progress; }
+
+  @media (max-width: 720px) {
+    .clean-head, .clean-foot { padding: 10px 12px; }
+    .clean-row { gap: 10px; padding: 10px 12px; }
+    .clean-foot { flex-wrap: wrap; justify-content: space-between; }
+  }
+}
