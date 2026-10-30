@@ -153,3 +153,13 @@ test('visning: dybde, "Små filer", "Andet" og arvet skrald', () => {
   assert.equal(other.size, 20 * 101 + 5);
   assert.equal(view.size, view.children.reduce((sum, child) => sum + child.size, 0));
 });
+
+test('recycleError: papirkurvens afvisninger på dansk, null når alt gik igennem', async () => {
+  const { recycleError } = await import('../lib/disk-service.mjs');
+  const GB = 1024 ** 3;
+  assert.equal(recycleError({ ok: true, moved: 2, failed: 0 }), null);
+  assert.match(recycleError({ ok: false, reason: 'bin-full', usedBytes: 3 * GB, maxBytes: 10 * GB }), /3 GB brugt af 10 GB.*Tøm papirkurven/);
+  assert.match(recycleError({ ok: false, reason: 'too-big', maxBytes: 10 * GB }), /maks\. 10 GB/);
+  assert.match(recycleError({ ok: false, reason: 'bin-disabled' }), /slået fra/);
+  assert.equal(recycleError({ ok: false, reason: 'ukendt' }), 'Papirkurven afviste den.');
+});
