@@ -16,6 +16,7 @@ import { planAction, planUndo, runSteps, createJsonStore, logEntry, appendLog } 
 import { hostAllowed, originAllowed, tokenMatches } from './lib/guard.mjs';
 import { createDiskRules } from './lib/disk.mjs';
 import { createDiskService } from './lib/disk-service.mjs';
+import { createCleanService } from './lib/clean.mjs';
 import { summarizeBoots } from './lib/boot.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -71,19 +72,32 @@ const state = {
   lastSent: new Map(),
 };
 const clients = new Set();
+const diskRules = createDiskRules(config.disk, knownBloatList.folders);
+const recycleScript = join(root, 'ps', 'recycle.ps1');
+const onLog = (entry) => {
+  state.log = appendLog(state.log, logEntry(entry.type, entry));
+  logStore.write(state.log);
+  broadcast('log', state.log);
+};
 const disk = createDiskService({
   settings: config.disk,
-  rules: createDiskRules(config.disk, knownBloatList.folders),
+  rules: diskRules,
   dataDir: join(root, 'data', 'disk'),
-  recycleScript: join(root, 'ps', 'recycle.ps1'),
+  recycleScript,
   sizesScript: join(root, 'ps', 'sizes.ps1'),
   runPowerShell,
   broadcast,
-  onLog: (entry) => {
-    state.log = appendLog(state.log, logEntry(entry.type, entry));
-    logStore.write(state.log);
-    broadcast('log', state.log);
-  },
+  onLog,
+});
+const clean = createCleanService({
+  rows: knownBloatList.clean ?? [],
+  rules: diskRules,
+  scanOptions: { concurrency: config.disk.concurrency, minItemBytes: config.disk.minItemMb * BYTES_PER_MB },
+  recycleScript,
+  dataDir: join(root, 'data'),
+  runPowerShell,
+  onLog,
+  timeoutMs: config.disk.recycleTimeoutMs,
 });
 let samplerProcess = null;
 let shutdownTimer = null;
@@ -313,6 +327,7 @@ const POST_ROUTES = {
   '/api/trust': toggleTrust,
   '/api/refresh': async () => { await Promise.all([refreshInventory(), refreshBoot()]); return [200, { message: 'Opdateret.' }]; },
   ...disk.routes,
+  ...clean.routes,
 };
 
 // ---------- HTTP ----------

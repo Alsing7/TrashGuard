@@ -57,5 +57,23 @@
     "Customer Experience Improvement Program\\Consolidator": "Microsofts program til forbedring af kundeoplevelsen: indsamler brugsdata.",
     "Application Experience\\Microsoft Compatibility Appraiser": "Telemetri: scanner dine programmer og sender kompatibilitetsdata til Microsoft.",
     "Application Experience\\ProgramDataUpdater": "Telemetri: indsamler programdata til Microsoft."
-  }
+  },
+  "clean": [
+    { "name": "Midlertidige filer", "text": "Programmernes midlertidige filer. Filer i brug bliver sprunget over.", "paths": ["%LOCALAPPDATA%\\Temp"] },
+    { "name": "Nedbrudsdumps", "text": "Dumps fra programmer, der er gået ned. Kun nyttige til fejlsøgning.", "paths": ["%LOCALAPPDATA%\\CrashDumps"] },
+    { "name": "NVIDIA shader-cache", "text": "Færdigkompilerede shadere. Bygges op igen; første spilstart kan hakke lidt.", "paths": ["%LOCALAPPDATA%\\NVIDIA\\DXCache", "%LOCALAPPDATA%\\NVIDIA\\GLCache"] },
+    { "name": "AMD shader-cache", "text": "Færdigkompilerede shadere. Bygges op igen; første spilstart kan hakke lidt.", "paths": ["%LOCALAPPDATA%\\AMD\\DxCache", "%LOCALAPPDATA%\\AMD\\GLCache"] },
+    { "name": "DirectX shader-cache", "text": "Windows' egen shader-cache. Bygges op igen.", "paths": ["%LOCALAPPDATA%\\D3DSCache"] },
+    { "name": "npm", "text": "npm's downloadcache. Pakker hentes igen ved næste install.", "paths": ["%LOCALAPPDATA%\\npm-cache"] },
+    { "name": "Yarn", "text": "Yarns downloadcache. Pakker hentes igen ved næste install.", "paths": ["%LOCALAPPDATA%\\Yarn\\Cache"] },
+    { "name": "pnpm", "text": "pnpm's metadatacache. Hentes igen ved næste install.", "paths": ["%LOCALAPPDATA%\\pnpm-cache"] },
+    { "name": "pip", "text": "pips downloadcache. Pakker hentes igen ved næste install.", "paths": ["%LOCALAPPDATA%\\pip\\Cache"] },
+    { "name": "Chrome", "text": "Browserens cache. Bygges op igen. Luk Chrome først, ellers er meget i brug.", "paths": ["%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Cache", "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Code Cache", "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\GPUCache"] },
+    { "name": "Edge", "text": "Browserens cache. Bygges op igen. Luk Edge først, ellers er meget i brug.", "paths": ["%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Cache", "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Code Cache", "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\GPUCache"] },
+    { "name": "Brave", "text": "Browserens cache. Bygges op igen. Luk Brave først, ellers er meget i brug.", "paths": ["%LOCALAPPDATA%\\BraveSoftware\\Brave-Browser\\User Data\\*\\Cache", "%LOCALAPPDATA%\\BraveSoftware\\Brave-Browser\\User Data\\*\\Code Cache", "%LOCALAPPDATA%\\BraveSoftware\\Brave-Browser\\User Data\\*\\GPUCache"] },
+    { "name": "Firefox", "text": "Browserens cache. Bygges op igen. Luk Firefox først, ellers er meget i brug.", "paths": ["%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles\\*\\cache2"] },
+    { "name": "Discord", "text": "Discords cache af billeder og filer. Bygges op igen.", "paths": ["%APPDATA%\\discord\\Cache", "%APPDATA%\\discord\\Code Cache", "%APPDATA%\\discord\\GPUCache"] },
+    { "name": "VS Code", "text": "Editorens cache. Bygges op igen.", "paths": ["%APPDATA%\\Code\\Cache", "%APPDATA%\\Code\\CachedData"] },
+    { "name": "Steam", "text": "Steam-butikkens browsercache. Bygges op igen.", "paths": ["%LOCALAPPDATA%\\Steam\\htmlcache"] }
+  ]
 }
