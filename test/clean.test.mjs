@@ -148,3 +148,50 @@ test('list og run samtidig giver 409', async () => {
     await rm(fx.root, { recursive: true, force: true });
   }
 });
+
+test('run: PowerShell dør midt i kørslen → det flyttede er logget, og fejlen er på dansk', async () => {
+  const fx = await fixture();
+  try {
+    await mkdir(join(fx.root, 'Stor'));
+    await mkdir(join(fx.root, 'Lille'));
+    await writeFile(join(fx.root, 'Stor', 'a.bin'), Buffer.alloc(3000));
+    await writeFile(join(fx.root, 'Lille', 'b.bin'), Buffer.alloc(1000));
+    const logs = [];
+    let calls = 0;
+    const clean = createCleanService({
+      rows: [
+        { name: 'Stor', text: '', paths: [join(fx.root, 'Stor')] },
+        { name: 'Lille', text: '', paths: [join(fx.root, 'Lille')] },
+      ],
+      rules: fx.rules, env: fx.env, dataDir: join(fx.root, 'data'), recycleScript: 'recycle.ps1', timeoutMs: 1000,
+      scanOptions: { concurrency: 2, minItemBytes: 1 },
+      runPowerShell: async (script, args) => {
+        calls += 1;
+        if (calls === 2) throw new Error('Command failed: powershell.exe -NoProfile');
+        for (const path of JSON.parse(await readFile(args[1], 'utf8'))) await rm(path, { recursive: true });
+        return '{"ok":true,"moved":1,"failed":0}';
+      },
+      onLog: (entry) => logs.push(entry),
+    });
+    const [status, body] = await clean.routes['/api/clean/run']({ names: ['Stor', 'Lille'] });
+    assert.equal(status, 500);
+    assert.doesNotMatch(body.error, /Command failed/);
+    assert.match(body.error, /papirkurven/);
+    assert.equal(logs.length, 1, 'den række, der nåede at blive flyttet, er logget');
+    assert.match(logs[0].label, /Stor/);
+  } finally {
+    await rm(fx.root, { recursive: true, force: true });
+  }
+});
+
+test('expandRows: en junction højere oppe i stien følges ikke, heller ikke via *', async () => {
+  const fx = await fixture();
+  try {
+    await mkdir(join(fx.root, 'Ægte', 'Profil', 'Cache'), { recursive: true });
+    await mkdir(join(fx.root, 'Ægte', 'Cache'));
+    const rows = [{ name: 'Flyttet op', text: 'Junction i forælderen.', paths: ['%LOCALAPPDATA%\\Flyttet\\Cache', '%LOCALAPPDATA%\\Flyttet\\*\\Cache'] }];
+    assert.deepEqual(await expandRows(rows, { env: fx.env, rules: fx.rules }), []);
+  } finally {
+    await rm(fx.root, { recursive: true, force: true });
+  }
+});

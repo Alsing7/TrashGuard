@@ -163,3 +163,34 @@ test('recycleError: papirkurvens afvisninger på dansk, null når alt gik igenne
   assert.match(recycleError({ ok: false, reason: 'bin-disabled' }), /slået fra/);
   assert.equal(recycleError({ ok: false, reason: 'ukendt' }), 'Papirkurven afviste den.');
 });
+
+test('recycleList: ét kald ad gangen, hver sin listefil, filerne slettes, en fejl stopper ikke køen', async () => {
+  const { recycleList } = await import('../lib/disk-service.mjs');
+  const { readFile, readdir } = await import('node:fs/promises');
+  const dataDir = await mkdtemp(join(tmpdir(), 'trashguard-liste-'));
+  try {
+    const seen = [];
+    let running = 0;
+    let maxRunning = 0;
+    const runPowerShell = async (script, args) => {
+      running += 1;
+      maxRunning = Math.max(maxRunning, running);
+      const paths = JSON.parse(await readFile(args[1], 'utf8'));
+      seen.push({ file: args[1], paths });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      running -= 1;
+      if (paths[0] === 'A') throw new Error('PowerShell døde');
+      return '{"ok":true,"moved":1,"failed":0}';
+    };
+    const options = { runPowerShell, recycleScript: 'recycle.ps1', dataDir, timeoutMs: 1000 };
+    const [first, second] = await Promise.allSettled([recycleList(options, ['A'], 1), recycleList(options, ['B'], 1)]);
+    assert.equal(first.status, 'rejected');
+    assert.deepEqual(second.value, { ok: true, moved: 1, failed: 0 });
+    assert.equal(maxRunning, 1, 'kun ét kald ad gangen');
+    assert.deepEqual(seen.map((call) => call.paths), [['A'], ['B']]);
+    assert.notEqual(seen[0].file, seen[1].file);
+    assert.deepEqual(await readdir(dataDir), [], 'listefilerne er slettet');
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
+});
