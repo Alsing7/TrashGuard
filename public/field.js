@@ -4,6 +4,7 @@
 // Hver overgang, der starter, koster stil, så et tick flytter kun det, der skal: et linseskift pakker klyngerne
 // med lidt ekstra luft, et tick skubber kun bobler, der ellers ville overlappe, og udvalget og skalaen står stille.
 import { el } from './ui.js';
+import { t } from './i18n.js';
 
 const FIELD = {
   // Andel af feltets areal, de aktive bobler fylder, når forbruget er over linsens loft (fieldMin).
@@ -98,7 +99,7 @@ export function mountField(container, handlers) {
   field.container = container;
   field.handlers = handlers;
   field.legend = el('div', { className: 'field-legend' }, SECTIONS.map((section) => el('button', {
-    type: 'button', tabindex: '-1', 'data-cat': section, 'data-legend': section, title: `Vis ${handlers.sectionNames[section]} i listen`,
+    type: 'button', tabindex: '-1', 'data-cat': section, 'data-legend': section, title: t('Vis {section} i listen', { section: handlers.sectionNames[section] }),
   }, handlers.sectionNames[section], el('b'))));
   field.legend.style.inset = `${FIELD.pad}px ${FIELD.pad}px auto`;
   field.halo = [el('span', { className: 'field-halo' }), el('span', { className: 'field-halo is-inner' })];
@@ -346,7 +347,7 @@ function writeNode(node, item, describe, exact) {
   put(node, 'size', labelSize(item, node.drawn.r), (value) => { node.label.dataset.size = value; });
   if (item.more) {
     put(node, 'name', `+${item.more}`, (value) => writeText(node.name, value));
-    put(node, 'title', `${item.more} flere i ${field.handlers.sectionNames[item.section]}`, (value) => { element.title = value; element.setAttribute('aria-label', value); });
+    put(node, 'title', t('{n} flere i {section}', { n: item.more, section: field.handlers.sectionNames[item.section] }), (value) => { element.title = value; element.setAttribute('aria-label', value); });
     return;
   }
   const text = describe(item);

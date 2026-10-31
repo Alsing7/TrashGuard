@@ -1,5 +1,6 @@
 // Strømmen fra serveren, den fælles tilstand, fanerne og topbjælken. Hver fane er sit eget modul (docs/design.md).
 import { token, $, el, setChildren, run, lensValue, bindTablist } from './ui.js';
+import { t, tr, lang, setLang } from './i18n.js';
 import * as live from './live.js';
 import * as startup from './startup.js';
 import * as disk from './disk.js';
@@ -78,7 +79,7 @@ function renderLivePill() {
 }
 
 function renderTick() {
-  if (app.status !== 'live') setStatus('Live', 'live');
+  if (app.status !== 'live') setStatus(t('Live'), 'live');
   beat();
   renderLivePill();
 }
@@ -90,8 +91,8 @@ function renderInventoryMarks() {
   const dead = [...inventory.startup, ...inventory.tasks, ...inventory.services].filter((item) => item.orphan && item.enabled !== false && item.startMode !== 'Disabled').length;
   const badge = $('#tab-startup-dead');
   badge.hidden = dead === 0;
-  badge.title = `${dead} ${dead === 1 ? 'post' : 'poster'} ved opstart peger på en fil, der ikke findes`;
-  setChildren(badge, String(dead), el('span', { className: 'visually-hidden' }, dead === 1 ? ' død post' : ' døde poster'));
+  badge.title = dead === 1 ? t('1 post ved opstart peger på en fil, der ikke findes') : t('{n} poster ved opstart peger på en fil, der ikke findes', { n: dead });
+  setChildren(badge, String(dead), el('span', { className: 'visually-hidden' }, ` ${dead === 1 ? t('død post') : t('døde poster')}`));
   $('#admin-banner').hidden = inventory.admin;
 }
 
@@ -156,7 +157,7 @@ function onSnapshot(data) {
   state.log = data.log;
   state.protectedServices = new Set(data.protectedServices);
   state.disk = data.disk;
-  setStatus(data.inventory ? 'Måler…' : 'Læser opstart og tjenester…', 'waiting', 'De første tal kommer om et par sekunder.');
+  setStatus(data.inventory ? t('Måler…') : t('Læser opstart og tjenester…'), 'waiting', t('De første tal kommer om et par sekunder.'));
   refreshAll();
 }
 
@@ -191,13 +192,34 @@ function connect() {
     deliver('onDisk');
   });
   on('problem', ({ message }) => {
-    $('#problem-text').textContent = message;
+    $('#problem-text').textContent = tr(message);
     $('#problem').hidden = false;
   });
-  stream.onerror = () => setStatus('Ingen forbindelse', 'offline', 'Er TrashGuard lukket? Start den fra genvejen.');
+  stream.onerror = () => setStatus(t('Ingen forbindelse'), 'offline', t('Er TrashGuard lukket? Start den fra genvejen.'));
 }
 
 // ---------- Start ----------
+
+// index.html er skrevet på dansk; dens tekster og etiketter oversættes én gang her.
+function translateStatic() {
+  document.documentElement.lang = lang;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.nodeValue.trim();
+    if (text) node.nodeValue = node.nodeValue.replace(text, t(text));
+  }
+  for (const node of document.querySelectorAll('[aria-label], [title]')) {
+    for (const name of ['aria-label', 'title']) if (node.hasAttribute(name)) node.setAttribute(name, t(node.getAttribute(name)));
+  }
+  const other = lang === 'da' ? 'en' : 'da';
+  const label = other === 'en' ? 'Switch to English' : 'Skift til dansk';
+  $('#lang').append(other.toUpperCase());
+  $('#lang').setAttribute('aria-label', label);
+  $('#lang').title = label;
+  $('#lang').addEventListener('click', () => setLang(other));
+}
+
+translateStatic();
 
 for (const [name, module] of Object.entries(TABS)) module.mount($(`#tab-${name}`), context);
 bindTablist($('#tabs'), (tab) => selectTab(tab.dataset.tab));

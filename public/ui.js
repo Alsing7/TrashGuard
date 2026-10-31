@@ -1,4 +1,6 @@
 // Fælles UI-hjælpere for alle fanerne. Signaturerne står i docs/design.md under "Filer og ejerskab".
+import { t, tr, locale } from './i18n.js';
+
 export const token = document.querySelector('meta[name="tg-token"]').content;
 const CONFIRM_TIMEOUT_MS = 4000;
 const TOAST_MS = 4500;
@@ -9,7 +11,7 @@ const LINE_FILL_ALPHA = 0.16;
 // Prikken på kurvens nyeste punkt er så meget større end stregen.
 const LINE_DOT_EXTRA = 1;
 const TAB_KEY_STEP = { ArrowRight: 1, ArrowLeft: -1 };
-const START_MODE_TEXT = { Auto: 'Automatisk', Manual: 'Manuel', Disabled: 'Deaktiveret', Boot: 'Driver', System: 'Driver', Unknown: 'Ukendt' };
+const START_MODE_TEXT = { Auto: t('Automatisk'), Manual: t('Manuel'), Disabled: t('Deaktiveret'), Boot: t('Driver'), System: t('Driver'), Unknown: t('Ukendt') };
 // De opstartstyper, TrashGuard kan skifte mellem: [Windows' navn, handlingens mode].
 const SERVICE_MODES = [['Auto', 'auto'], ['Manual', 'manual'], ['Disabled', 'disabled']];
 const DRIVER_MODES = new Set(['Boot', 'System']);
@@ -37,8 +39,8 @@ export const setChildren = (node, ...children) => node.replaceChildren(...childr
 
 export const icon = (name) => el('span', { className: `bi bi-${name}`, 'aria-hidden': 'true' });
 // Faste formattere: toLocaleString bygger en ny ved hvert kald (ca. 0,1 ms), og Live skriver hundredvis af tal pr. tick.
-const ONE_DECIMAL = new Intl.NumberFormat('da-DK', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const WHOLE = new Intl.NumberFormat('da-DK', { maximumFractionDigits: 0 });
+const ONE_DECIMAL = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const WHOLE = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
 export const oneDecimal = (value) => ONE_DECIMAL.format(value);
 export const percentParts = (value) => [oneDecimal(value), '%'];
 export const percent = (value) => `${oneDecimal(value)} %`;
@@ -53,11 +55,11 @@ export const lensParts = (lens, value) => (MEMORY_LENSES.has(lens) ? memoryParts
 export const lensValue = (lens, value) => lensParts(lens, value).join(' ');
 export const cssColor = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 // Tjenestens opstartstype på dansk, fx "Automatisk (forsinket)".
-export const startModeLabel = (service) => `${START_MODE_TEXT[service.startMode] ?? service.startMode}${service.delayed ? ' (forsinket)' : ''}`;
+export const startModeLabel = (service) => `${START_MODE_TEXT[service.startMode] ?? service.startMode}${service.delayed ? ` ${t('(forsinket)')}` : ''}`;
 
 export function toast(message, isError = false) {
   const node = $('#toast');
-  setChildren(node, el('span', { className: 'toast-icon' }, icon(isError ? 'x-lg' : 'check-lg')), el('span', {}, message));
+  setChildren(node, el('span', { className: 'toast-icon' }, icon(isError ? 'x-lg' : 'check-lg')), el('span', {}, tr(message)));
   node.classList.toggle('is-error', isError);
   node.hidden = false;
   clearTimeout(toastTimer);
@@ -71,7 +73,7 @@ export async function post(path, body) {
     body: JSON.stringify(body),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Handlingen fejlede.');
+  if (!response.ok) throw new Error(tr(data.error) || t('Handlingen fejlede.'));
   return data;
 }
 
@@ -191,30 +193,30 @@ const lockNote = (text) => el('p', { className: 'lock-note' }, icon('lock'), tex
 // og en Manuel tjeneste, der kører, får en Stop-knap.
 export function serviceControl(service, isProtected) {
   const known = SERVICE_MODES.some(([startMode]) => startMode === service.startMode);
-  if (!known) return [lockNote(DRIVER_MODES.has(service.startMode) ? 'Driver: Windows styrer den.' : 'Opstartstypen kan ikke ændres herfra.')];
+  if (!known) return [lockNote(DRIVER_MODES.has(service.startMode) ? t('Driver: Windows styrer den.') : t('Opstartstypen kan ikke ændres herfra.'))];
   const isDisabled = service.startMode === 'Disabled';
-  if (isProtected && !isDisabled) return [lockNote('Låst: Windows har brug for den.')];
+  if (isProtected && !isDisabled) return [lockNote(t('Låst: Windows har brug for den.'))];
   const running = service.state === 'Running';
   const act = (mode) => (button) => run('/api/action', { type: 'service', name: service.name, mode }, button);
   const choice = ([startMode, mode]) => {
     const text = START_MODE_TEXT[startMode];
     const pressed = startMode === service.startMode;
     if (mode === 'auto') {
-      if (pressed && running) return { text, pressed, title: 'Automatisk, og den kører' };
-      return { text, pressed, title: pressed ? 'Start den' : 'Sæt til Automatisk og start den', onPick: act(mode) };
+      if (pressed && running) return { text, pressed, title: t('Automatisk, og den kører') };
+      return { text, pressed, title: pressed ? t('Start den') : t('Sæt til Automatisk og start den'), onPick: act(mode) };
     }
-    if (pressed) return { text, pressed, title: `Den er allerede ${text}` };
+    if (pressed) return { text, pressed, title: t('Den er allerede {mode}', { mode: text }) };
     if (mode === 'manual') {
       return isDisabled
-        ? { text, title: 'Aktivér som Manuel', onPick: act(mode) }
-        : { text, title: 'Stop den og sæt til Manuel', onPick: act(mode), confirmLabel: 'Bekræft: Manuel' };
+        ? { text, title: t('Aktivér som Manuel'), onPick: act(mode) }
+        : { text, title: t('Stop den og sæt til Manuel'), onPick: act(mode), confirmLabel: t('Bekræft: Manuel') };
     }
-    return { text, title: 'Stop og deaktivér. Intet kan starte den bagefter', onPick: act(mode), confirmLabel: 'Bekræft: deaktivér' };
+    return { text, title: t('Stop og deaktivér. Intet kan starte den bagefter'), onPick: act(mode), confirmLabel: t('Bekræft: deaktivér') };
   };
   return [
-    segment(`Opstartstype for ${service.display}`, SERVICE_MODES.map(choice)),
+    segment(t('Opstartstype for {name}', { name: service.display }), SERVICE_MODES.map(choice)),
     service.startMode === 'Manual' && running
-      ? confirmButton('Stop', 'Bekræft: stop', act('manual'), 'button button-small button-danger', 'stop-fill')
+      ? confirmButton(t('Stop'), t('Bekræft: stop'), act('manual'), 'button button-small button-danger', 'stop-fill')
       : null,
   ];
 }

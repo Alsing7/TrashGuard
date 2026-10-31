@@ -1,35 +1,36 @@
 // Disk-fanen: kort over pladsforbrug som kasser (treemap) eller solstråle.
 // Skjult fane = intet arbejde: ingen ResizeObserver, ingen lyttere på dokumentet, ingen hentning.
 import { $, el, setChildren, icon, chip, memory, memoryParts, post, run, toast, confirmButton, cancelConfirm, prepareCanvas, cssColor } from './ui.js';
+import { t, tr, locale } from './i18n.js';
 
 const TEMPLATE = `
   <div class="disk-bar">
     <div class="drives" id="disk-drives"></div>
     <form class="disk-path" id="disk-path-form">
-      <input class="disk-input" id="disk-path" type="text" placeholder="Eller en mappe, fx D:\\Spil" aria-label="Mappe der skal scannes" autocomplete="off" spellcheck="false">
-      <button type="submit" class="button button-primary"><span class="bi bi-search" aria-hidden="true"></span>Scan</button>
+      <input class="disk-input" id="disk-path" type="text" placeholder="${t('Eller en mappe, fx D:\\Spil')}" aria-label="${t('Mappe der skal scannes')}" autocomplete="off" spellcheck="false">
+      <button type="submit" class="button button-primary"><span class="bi bi-search" aria-hidden="true"></span>${t('Scan')}</button>
     </form>
   </div>
   <div class="disk-status" id="disk-status"></div>
   <div class="disk-nav" id="disk-nav">
-    <nav class="disk-crumbs" id="disk-crumbs" aria-label="Sti"></nav>
-    <div class="segment disk-modes" role="group" aria-label="Visning">
-      <button type="button" data-disk-mode="boxes" aria-pressed="true"><span class="bi bi-grid-1x2" aria-hidden="true"></span>Kasser</button>
-      <button type="button" data-disk-mode="sunburst" aria-pressed="false"><span class="bi bi-bullseye" aria-hidden="true"></span>Solstråle</button>
+    <nav class="disk-crumbs" id="disk-crumbs" aria-label="${t('Sti')}"></nav>
+    <div class="segment disk-modes" role="group" aria-label="${t('Visning')}">
+      <button type="button" data-disk-mode="boxes" aria-pressed="true"><span class="bi bi-grid-1x2" aria-hidden="true"></span>${t('Kasser')}</button>
+      <button type="button" data-disk-mode="sunburst" aria-pressed="false"><span class="bi bi-bullseye" aria-hidden="true"></span>${t('Solstråle')}</button>
     </div>
   </div>
   <div class="disk-main" id="disk-main">
     <div>
       <div class="disk-map">
-        <canvas id="disk-canvas" aria-label="Kort over pladsforbrug. Listen Største indhold viser det samme som tekst."></canvas>
+        <canvas id="disk-canvas" aria-label="${t('Kort over pladsforbrug. Listen Største indhold viser det samme som tekst.')}"></canvas>
         <div class="disk-empty" id="disk-empty"></div>
         <div class="disk-tip" id="disk-tip" role="tooltip" hidden></div>
       </div>
       <p class="disk-legend" id="disk-legend">
-        <span><span class="disk-swatch is-junk"></span>Kendt skrald</span>
-        <span title="Windows, programmer og systemfiler. Kan ikke flyttes til papirkurven herfra."><span class="disk-swatch is-locked"></span>Låst</span>
-        <span title="Hver mappe i udsnittet har sin egen tone. En mappe, hvis indhold vises, er en mørkere ramme om det."><span class="disk-swatch is-tones"><i></i><i></i><i></i></span>Alt andet</span>
-        <span class="disk-legend-hint"><kbd>Backspace</kbd> går op</span>
+        <span><span class="disk-swatch is-junk"></span>${t('Kendt skrald')}</span>
+        <span title="${t('Windows, programmer og systemfiler. Kan ikke flyttes til papirkurven herfra.')}"><span class="disk-swatch is-locked"></span>${t('Låst')}</span>
+        <span title="${t('Hver mappe i udsnittet har sin egen tone. En mappe, hvis indhold vises, er en mørkere ramme om det.')}"><span class="disk-swatch is-tones"><i></i><i></i><i></i></span>${t('Alt andet')}</span>
+        <span class="disk-legend-hint"><kbd>Backspace</kbd> ${t('går op')}</span>
       </p>
     </div>
     <aside class="disk-detail" id="disk-detail"></aside>
@@ -138,14 +139,13 @@ let tip = null;
 let palette = null;
 let hatch = null;
 const megabytes = (bytes) => memory(bytes / BYTES_PER_MB);
-const count = (value) => Number(value).toLocaleString('da-DK');
+const count = (value) => Number(value).toLocaleString(locale);
 const lower = (text) => String(text).toLowerCase();
 const isInside = (target, root) => lower(target) === lower(root) || lower(target).startsWith(lower(root).endsWith('\\') ? lower(root) : `${lower(root)}\\`);
 const isDriveRoot = (path) => /^[a-z]:\\$/i.test(path);
 const isGroup = (item) => item.kind === 'small' || item.kind === 'other';
 const isHatched = (item) => Boolean(item.locked) && item.locked !== CONTENT_LOCK;
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
-const plural = (amount, one, many) => `${count(amount)} ${amount === 1 ? one : many}`;
 
 function readStoredMode() {
   try {
@@ -167,22 +167,24 @@ function parentOf(path) {
 
 function ago(timestamp) {
   const minutes = Math.round((Date.now() - timestamp) / 60000);
-  if (minutes < 1) return 'lige nu';
-  if (minutes < 60) return `for ${minutes} min. siden`;
+  if (minutes < 1) return t('lige nu');
+  if (minutes < 60) return t('for {n} min. siden', { n: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `for ${hours} ${hours === 1 ? 'time' : 'timer'} siden`;
+  if (hours < 24) return hours === 1 ? t('for 1 time siden') : t('for {n} timer siden', { n: hours });
   const days = Math.round(hours / 24);
-  return `for ${days} ${days === 1 ? 'dag' : 'dage'} siden`;
+  return days === 1 ? t('for 1 dag siden') : t('for {n} dage siden', { n: days });
 }
 
 function duration(ms) {
   const seconds = Math.round(ms / 1000);
-  return seconds < 60 ? `${seconds} sek.` : `${Math.floor(seconds / 60)} min. ${seconds % 60} sek.`;
+  return seconds < 60 ? t('{s} sek.', { s: seconds }) : t('{m} min. {s} sek.', { m: Math.floor(seconds / 60), s: seconds % 60 });
 }
 
 function itemTitle(item) {
-  if (item.kind === 'small') return `Små filer (${count(item.files)} stk.)`;
-  if (item.kind === 'other') return `${count(item.files)} mindre ting`;
+  if (item.kind === 'small') return t('Små filer ({n} stk.)', { n: count(item.files) });
+  if (item.kind === 'other') return t('{n} mindre ting', { n: count(item.files) });
+  // Serverens kasse for skyggekopiernes plads (lib/disk.mjs, SHADOW_ITEM).
+  if (item.name === 'Gendannelsespunkter') return t('Gendannelsespunkter');
   return item.name;
 }
 
@@ -663,10 +665,10 @@ function fillTip(shape) {
   const node = shape.node;
   setChildren(tip,
     el('strong', {}, `${itemTitle(node)}, ${megabytes(node.size)}`),
-    node.kind === 'dir' ? el('span', {}, `${count(node.files)} filer`) : null,
-    el('span', {}, isGroup(node) ? `i ${node.path}` : node.path),
-    node.junk ? el('span', {}, node.junk) : null,
-    shape.type === 'core' && canGoUp() ? el('span', {}, 'Klik for at gå et niveau op') : null);
+    node.kind === 'dir' ? el('span', {}, t('{n} filer', { n: count(node.files) })) : null,
+    el('span', {}, isGroup(node) ? t('i {path}', { path: node.path }) : node.path),
+    node.junk ? el('span', {}, tr(node.junk)) : null,
+    shape.type === 'core' && canGoUp() ? el('span', {}, t('Klik for at gå et niveau op')) : null);
   tip.hidden = false;
   // Tippens mål læses én gang pr. ny form, ikke ved hver musebevægelse.
   disk.tipSize = { width: tip.offsetWidth, height: tip.offsetHeight };
@@ -752,8 +754,8 @@ function driveButton(item) {
   driveRing(item.size ? used / item.size : null),
   el('span', { className: 'drive-text' },
     el('span', { className: 'drive-name' }, name),
-    item.size ? el('span', { className: 'drive-sub' }, `${megabytes(used)} af ${megabytes(item.size)}`) : null,
-    el('span', { className: 'drive-sub' }, saved ? `scannet ${ago(saved.scannedAt)}` : 'ikke scannet')));
+    item.size ? el('span', { className: 'drive-sub' }, t('{used} af {total}', { used: megabytes(used), total: megabytes(item.size) })) : null,
+    el('span', { className: 'drive-sub' }, saved ? t('scannet {when}', { when: ago(saved.scannedAt) }) : t('ikke scannet'))));
 }
 
 // Drevene bygges kun om, når drev eller scanninger skifter. Et drevskift patcher bare aria-pressed, så fokus bliver.
@@ -774,7 +776,7 @@ function renderDrives() {
 // ---------- Status ----------
 
 function scanText(active) {
-  return `Scanner ${active.path}: ${count(active.files)} filer, ${megabytes(active.bytes)}, ${duration(Date.now() - active.startedAt)}`;
+  return t('Scanner {path}: {n} filer, {size}, {time}', { path: active.path, n: count(active.files), size: megabytes(active.bytes), time: duration(Date.now() - active.startedAt) });
 }
 
 // Under scanning kommer der tal hvert sekund; kun chippens tekst skrives om.
@@ -787,27 +789,27 @@ function renderScanning(status, active) {
   disk.rendered.status = key;
   setChildren(status,
     el('span', { className: 'chip chip-ok disk-scanning' }, icon('hourglass-split'), el('span', { className: 'disk-scan-text' }, scanText(active))),
-    el('button', { type: 'button', className: 'button button-small', 'data-focus': 'stop', onclick: (event) => run('/api/disk/stop', {}, event.currentTarget) }, icon('stop-fill'), 'Stop'));
+    el('button', { type: 'button', className: 'button button-small', 'data-focus': 'stop', onclick: (event) => run('/api/disk/stop', {}, event.currentTarget) }, icon('stop-fill'), t('Stop')));
 }
 
 function missingParts(entry) {
   return [
-    entry.denied ? plural(entry.denied, 'mappe', 'mapper') + ' uden adgang' : null,
-    entry.unreadable ? plural(entry.unreadable, 'fil', 'filer') + ' uden størrelse' : null,
+    entry.denied ? (entry.denied === 1 ? t('1 mappe uden adgang') : t('{n} mapper uden adgang', { n: count(entry.denied) })) : null,
+    entry.unreadable ? (entry.unreadable === 1 ? t('1 fil uden størrelse') : t('{n} filer uden størrelse', { n: count(entry.unreadable) })) : null,
   ].filter(Boolean);
 }
 
 function whyText(isDrive) {
   return isDrive
-    ? 'Fundet er mindre end brugt, fordi Windows også tæller NTFS\' egne data (filtabellen og journalen), afrunding til hele klynger og mapper, som selv administrator ikke må åbne.'
-    : 'Scanningen måtte ikke læse alt, så det mangler i tallet.';
+    ? t('Fundet er mindre end brugt, fordi Windows også tæller NTFS\' egne data (filtabellen og journalen), afrunding til hele klynger og mapper, som selv administrator ikke må åbne.')
+    : t('Scanningen måtte ikke læse alt, så det mangler i tallet.');
 }
 
 // "Hvorfor mangler der noget?": chippen bliver på sin plads i rækken, og forklaringen folder ud på sin egen linje under den.
 function whyToggle(entry, isDrive) {
   const missing = missingParts(entry);
   const body = el('div', { className: 'disk-why-body', id: 'disk-why-body', hidden: true },
-    missing.length ? el('strong', {}, 'Hvorfor mangler der noget?') : null,
+    missing.length ? el('strong', {}, t('Hvorfor mangler der noget?')) : null,
     el('p', {}, whyText(isDrive)),
     entry.deniedPaths?.length ? el('ul', {}, entry.deniedPaths.map((path) => el('li', {}, path))) : null);
   const button = el('button', {
@@ -816,7 +818,7 @@ function whyToggle(entry, isDrive) {
       body.hidden = !body.hidden;
       button.setAttribute('aria-expanded', String(!body.hidden));
     },
-  }, icon(missing.length ? 'exclamation-triangle' : 'search'), missing.length ? missing.join(', ') : 'Hvorfor er tallene forskellige?', icon('chevron-right'));
+  }, icon(missing.length ? 'exclamation-triangle' : 'search'), missing.length ? missing.join(', ') : t('Hvorfor er tallene forskellige?'), icon('chevron-right'));
   return [button, body];
 }
 
@@ -825,18 +827,18 @@ function renderScanned(status, entry) {
   const key = JSON.stringify(['idle', entry, drive?.free]);
   if (disk.rendered.status === key) return;
   disk.rendered.status = key;
-  const when = new Date(entry.scannedAt).toLocaleString('da-DK', { dateStyle: 'long', timeStyle: 'short' });
+  const when = new Date(entry.scannedAt).toLocaleString(locale, { dateStyle: 'long', timeStyle: 'short' });
   // På et drev: sammenlign med det, Windows siger er brugt, og sig ærligt hvor resten er.
-  const found = drive ? `${megabytes(entry.size)} fundet af ${megabytes(drive.size - drive.free)} brugt` : `${megabytes(entry.size)} fundet`;
+  const found = drive ? t('{found} fundet af {used} brugt', { found: megabytes(entry.size), used: megabytes(drive.size - drive.free) }) : t('{found} fundet', { found: megabytes(entry.size) });
   const [why, whyBody] = drive || missingParts(entry).length ? whyToggle(entry, Boolean(drive)) : [];
   setChildren(status,
-    chip(`scannet ${ago(entry.scannedAt)}`, { iconName: 'calendar-check', title: `Scannet ${when}` }),
-    chip(`${count(entry.files)} filer`, { iconName: 'files' }),
+    chip(t('scannet {when}', { when: ago(entry.scannedAt) }), { iconName: 'calendar-check', title: t('Scannet {when}', { when }) }),
+    chip(t('{n} filer', { n: count(entry.files) }), { iconName: 'files' }),
     chip(found, { iconName: 'device-hdd' }),
-    chip(`tog ${duration(entry.durationMs)}`, { iconName: 'clock' }),
+    chip(t('tog {time}', { time: duration(entry.durationMs) }), { iconName: 'clock' }),
     why,
     el('button', { type: 'button', className: 'button button-small disk-rescan-all', 'data-focus': 'rescan-all', onclick: (event) => startScan(entry.root, event.currentTarget) },
-      icon('arrow-clockwise'), isDriveRoot(entry.root) ? 'Scan hele drevet igen' : 'Scan hele mappen igen'),
+      icon('arrow-clockwise'), isDriveRoot(entry.root) ? t('Scan hele drevet igen') : t('Scan hele mappen igen')),
     whyBody);
 }
 
@@ -878,22 +880,22 @@ function emptyState(iconName, title, text, ...actions) {
   return [el('span', { className: 'disk-empty-icon' }, icon(iconName)), el('h2', {}, title), el('p', {}, text), el('div', { className: 'disk-empty-actions' }, actions)];
 }
 
-const scanButton = (path) => el('button', { type: 'button', className: 'button button-primary', 'data-focus': 'scan', onclick: (event) => startScan(path, event.currentTarget) }, icon('search'), `Scan ${path}`);
+const scanButton = (path) => el('button', { type: 'button', className: 'button button-primary', 'data-focus': 'scan', onclick: (event) => startScan(path, event.currentTarget) }, icon('search'), t('Scan {path}', { path }));
 
 function emptyContent() {
   if (!disk.path) {
     const first = disk.drives[0]?.root;
-    return emptyState('device-hdd', 'Hvad fylder på din PC?', 'Vælg et drev ovenfor, eller skriv en mappe. Første scanning af et drev tager et par minutter, og kortet tegnes undervejs.', first ? scanButton(first) : null);
+    return emptyState('device-hdd', t('Hvad fylder på din PC?'), t('Vælg et drev ovenfor, eller skriv en mappe. Første scanning af et drev tager et par minutter, og kortet tegnes undervejs.'), first ? scanButton(first) : null);
   }
   if (disk.active && isInside(disk.path, disk.active.root)) {
-    return emptyState('hourglass-split', 'Scanner …', 'Kortet dukker op om et øjeblik og vokser, mens scanningen kører.');
+    return emptyState('hourglass-split', t('Scanner …'), t('Kortet dukker op om et øjeblik og vokser, mens scanningen kører.'));
   }
   const { root } = scannedRoot(disk.path) ?? {};
   if (!root) {
-    return emptyState('search', `${disk.path} er ikke scannet`, 'Scan den, så ser du, hvad der fylder. Kortet tegnes undervejs.', scanButton(disk.path));
+    return emptyState('search', t('{path} er ikke scannet', { path: disk.path }), t('Scan den, så ser du, hvad der fylder. Kortet tegnes undervejs.'), scanButton(disk.path));
   }
-  return emptyState('exclamation-triangle', 'Mappen er ikke med', disk.error ?? 'Udsnittet kunne ikke hentes.', scanButton(disk.path),
-    el('button', { type: 'button', className: 'button', 'data-focus': 'back', onclick: () => openRoot(root) }, `Tilbage til ${root}`));
+  return emptyState('exclamation-triangle', t('Mappen er ikke med'), disk.error ?? t('Udsnittet kunne ikke hentes.'), scanButton(disk.path),
+    el('button', { type: 'button', className: 'button', 'data-focus': 'back', onclick: () => openRoot(root) }, t('Tilbage til {root}', { root })));
 }
 
 function renderEmpty() {
@@ -910,30 +912,30 @@ function renderEmpty() {
 // ---------- Detaljepanelet ----------
 
 function lockNote(item) {
-  if (isGroup(item)) return 'Samlet gruppe af små ting. Gå ind i mappen for at se dem enkeltvis.';
-  if (item.locked) return disk.locks[item.locked] ?? 'Låst.';
-  return disk.active ? 'Papirkurven venter, til scanningen er færdig.' : null;
+  if (isGroup(item)) return t('Samlet gruppe af små ting. Gå ind i mappen for at se dem enkeltvis.');
+  if (item.locked) return tr(disk.locks[item.locked]) ?? t('Låst.');
+  return disk.active ? t('Papirkurven venter, til scanningen er færdig.') : null;
 }
 
 function recycleButton(item, isCurrent) {
-  const button = confirmButton('Papirkurv', `Bekræft: ${megabytes(item.size)}`, async (target) => {
+  const button = confirmButton(t('Papirkurv'), t('Bekræft: {size}', { size: megabytes(item.size) }), async (target) => {
     if (await run('/api/disk/recycle', { path: item.path }, target)) {
       disk.selected = null;
       if (isCurrent) setPath(parentOf(item.path));
       fetchView();
     }
   }, 'button button-small button-danger', 'trash3');
-  button.title = 'Flyt til papirkurven. Kan gendannes fra Windows\' papirkurv.';
+  button.title = t('Flyt til papirkurven. Kan gendannes fra Windows\' papirkurv.');
   button.dataset.focus = 'recycle';
   return button;
 }
 
 function actionButtons(item, isCurrent, note) {
   return el('div', { className: 'disk-actions' },
-    el('button', { type: 'button', className: 'button button-small', 'data-focus': 'reveal', onclick: (event) => run('/api/disk/reveal', { path: item.path }, event.currentTarget) }, icon('folder2-open'), 'Åbn i Stifinder'),
-    el('button', { type: 'button', className: 'button button-small', 'data-focus': 'copy', onclick: () => copyPath(item.path) }, icon('clipboard'), 'Kopiér sti'),
+    el('button', { type: 'button', className: 'button button-small', 'data-focus': 'reveal', onclick: (event) => run('/api/disk/reveal', { path: item.path }, event.currentTarget) }, icon('folder2-open'), t('Åbn i Stifinder')),
+    el('button', { type: 'button', className: 'button button-small', 'data-focus': 'copy', onclick: () => copyPath(item.path) }, icon('clipboard'), t('Kopiér sti')),
     item.kind === 'dir' && !disk.active
-      ? el('button', { type: 'button', className: 'button button-small', 'data-focus': 'rescan', title: 'Scan denne mappe igen', onclick: (event) => rescan(item.path, event.currentTarget) }, icon('arrow-clockwise'), 'Scan igen')
+      ? el('button', { type: 'button', className: 'button button-small', 'data-focus': 'rescan', title: t('Scan denne mappe igen'), onclick: (event) => rescan(item.path, event.currentTarget) }, icon('arrow-clockwise'), t('Scan igen'))
       : null,
     note ? null : recycleButton(item, isCurrent));
 }
@@ -962,7 +964,7 @@ function largestList() {
   return [
     el('ol', { className: 'disk-list' }, shown.map((child) => largestRow(child, biggest))),
     shown.length < children.length
-      ? el('button', { type: 'button', className: 'button button-small disk-more', 'data-focus': 'more', onclick: () => showAllRows(children) }, `Vis alle ${count(children.length)}`, icon('chevron-right'))
+      ? el('button', { type: 'button', className: 'button button-small disk-more', 'data-focus': 'more', onclick: () => showAllRows(children) }, t('Vis alle {n}', { n: count(children.length) }), icon('chevron-right'))
       : null,
   ];
 }
@@ -991,20 +993,20 @@ function renderDetail() {
   setChildren(detail,
     el('h2', { className: 'disk-detail-title', title: item.path, tabindex: '-1', 'data-focus': 'title' }, isCurrent ? currentTitle(item.path) : itemTitle(item)),
     el('p', { className: 'disk-size' }, size, el('small', {}, unit)),
-    el('p', { className: 'disk-sub' }, [item.kind === 'dir' || item.kind === 'small' ? `${count(item.files)} filer` : null, real && !isDriveRoot(item.path) ? item.path : null].filter(Boolean).join(' · ')),
-    item.junk || item.inJunk ? el('p', { className: 'callout callout-junk' }, icon('trash3'), item.junk ?? 'Ligger i en mappe med kendt skrald.') : null,
+    el('p', { className: 'disk-sub' }, [item.kind === 'dir' || item.kind === 'small' ? t('{n} filer', { n: count(item.files) }) : null, real && !isDriveRoot(item.path) ? item.path : null].filter(Boolean).join(' · ')),
+    item.junk || item.inJunk ? el('p', { className: 'callout callout-junk' }, icon('trash3'), tr(item.junk) ?? t('Ligger i en mappe med kendt skrald.')) : null,
     real ? actionButtons(item, isCurrent, note) : null,
     note ? el('p', { className: 'lock-note' }, icon('lock'), note) : null,
-    hasList ? el('h3', { className: 'disk-list-title' }, isCurrent ? 'Største indhold' : `Største i ${currentTitle(disk.view.path)}`) : null,
+    hasList ? el('h3', { className: 'disk-list-title' }, isCurrent ? t('Største indhold') : t('Største i {name}', { name: currentTitle(disk.view.path) })) : null,
     hasList ? largestList() : null);
 }
 
 async function copyPath(path) {
   try {
     await navigator.clipboard.writeText(path);
-    toast('Stien er kopieret.');
+    toast(t('Stien er kopieret.'));
   } catch {
-    toast('Browseren tillod ikke at kopiere.', true);
+    toast(t('Browseren tillod ikke at kopiere.'), true);
   }
 }
 

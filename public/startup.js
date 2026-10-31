@@ -1,27 +1,28 @@
 // Opstart-fanen: seneste opstart med tidslinje, tidligere opstarter og opstartsposter, opgaver og tjenester.
 import { el, icon, chip, toggle, setChildren, oneDecimal, run, cancelConfirm, serviceControl, startModeLabel, bindTablist, MS_PER_DAY } from './ui.js';
+import { t, tr, lang, locale } from './i18n.js';
 
 const TEMPLATE = `
   <div class="boot-wrap">
-    <section class="card boot" id="boot" aria-label="Opstart"><p class="empty">Læser Windows' eventlog…</p></section>
+    <section class="card boot" id="boot" aria-label="${t('Opstart')}"><p class="empty">${t("Læser Windows' eventlog…")}</p></section>
     <section class="card history" id="boot-history" aria-labelledby="history-title" hidden>
-      <h2 class="card-title" id="history-title">Tidligere <span class="chip" id="history-count"></span></h2>
+      <h2 class="card-title" id="history-title">${t('Tidligere')} <span class="chip" id="history-count"></span></h2>
       <div class="history-bars" id="history-bars"></div>
       <p class="history-legend" id="history-legend"></p>
       <p class="history-worst" id="history-worst"></p>
     </section>
   </div>
   <div class="inventory-bar">
-    <div class="tabs inv-tabs" role="tablist" aria-label="Opstartsposter, planlagte opgaver og tjenester" id="inv-tabs">
-      <button type="button" role="tab" class="tab" id="inv-tab-startup" data-inv="startup" aria-controls="inventory" aria-selected="true"><span class="bi bi-power" aria-hidden="true"></span><span class="inv-long">Opstartsposter</span><span class="inv-short">Poster</span><span class="inv-meta"></span></button>
-      <button type="button" role="tab" class="tab" id="inv-tab-tasks" data-inv="tasks" aria-controls="inventory" aria-selected="false"><span class="bi bi-calendar-check" aria-hidden="true"></span><span class="inv-long">Planlagte opgaver</span><span class="inv-short">Opgaver</span><span class="inv-meta"></span></button>
-      <button type="button" role="tab" class="tab" id="inv-tab-services" data-inv="services" aria-controls="inventory" aria-selected="false"><span class="bi bi-gear" aria-hidden="true"></span><span class="inv-long">Tjenester</span><span class="inv-short">Tjenester</span><span class="inv-meta"></span></button>
+    <div class="tabs inv-tabs" role="tablist" aria-label="${t('Opstartsposter, planlagte opgaver og tjenester')}" id="inv-tabs">
+      <button type="button" role="tab" class="tab" id="inv-tab-startup" data-inv="startup" aria-controls="inventory" aria-selected="true"><span class="bi bi-power" aria-hidden="true"></span><span class="inv-long">${t('Opstartsposter')}</span><span class="inv-short">${t('Poster')}</span><span class="inv-meta"></span></button>
+      <button type="button" role="tab" class="tab" id="inv-tab-tasks" data-inv="tasks" aria-controls="inventory" aria-selected="false"><span class="bi bi-calendar-check" aria-hidden="true"></span><span class="inv-long">${t('Planlagte opgaver')}</span><span class="inv-short">${t('Opgaver')}</span><span class="inv-meta"></span></button>
+      <button type="button" role="tab" class="tab" id="inv-tab-services" data-inv="services" aria-controls="inventory" aria-selected="false"><span class="bi bi-gear" aria-hidden="true"></span><span class="inv-long">${t('Tjenester')}</span><span class="inv-short">${t('Tjenester')}</span><span class="inv-meta"></span></button>
     </div>
-    <label class="check"><input type="checkbox" id="show-windows"><span class="check-box" aria-hidden="true"><span class="bi bi-check-lg"></span></span>Vis Windows' egne<span id="hidden-dead"></span></label>
+    <label class="check"><input type="checkbox" id="show-windows"><span class="check-box" aria-hidden="true"><span class="bi bi-check-lg"></span></span>${t("Vis Windows' egne")}<span id="hidden-dead"></span></label>
   </div>
-  <div id="inventory" role="tabpanel" aria-labelledby="inv-tab-startup"><ol class="card inventory" id="inventory-list"><li class="empty">Læser opstartsposter, opgaver og tjenester…</li></ol></div>`;
+  <div id="inventory" role="tabpanel" aria-labelledby="inv-tab-startup"><ol class="card inventory" id="inventory-list"><li class="empty">${t('Læser opstartsposter, opgaver og tjenester…')}</li></ol></div>`;
 
-const BOOT_TYPE = { 0: ['power', 'kold start'], 1: ['lightning-charge', 'hurtig start'], 2: ['moon-stars', 'fra dvale'] };
+const BOOT_TYPE = { 0: ['power', t('kold start')], 1: ['lightning-charge', t('hurtig start')], 2: ['moon-stars', t('fra dvale')] };
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 // Afvigelser under 10 s vises med én decimal, større i hele sekunder.
@@ -31,9 +32,9 @@ const TIMELINE_ROOM = 1.03;
 // Selv den korteste opstart får en søjle, der kan ses og rammes.
 const MIN_BAR_PERCENT = 6;
 const EMPTY_TEXT = {
-  startup: 'Ingen opstartsposter.',
-  tasks: "Ingen planlagte opgaver. Slå \"Vis Windows' egne\" til for at se Windows' egne.",
-  services: "Ingen tjenester. Slå \"Vis Windows' egne\" til for at se Windows' egne.",
+  startup: t('Ingen opstartsposter.'),
+  tasks: t('Ingen planlagte opgaver. Slå "Vis Windows\' egne" til for at se Windows\' egne.'),
+  services: t('Ingen tjenester. Slå "Vis Windows\' egne" til for at se Windows\' egne.'),
 };
 
 // Fælles tilstand fra app.js (samme objekt hele tiden), fanens noder og dens egen visningstilstand.
@@ -51,7 +52,7 @@ function duration(seconds) {
 }
 
 const capitalize = (text) => `${text[0].toUpperCase()}${text.slice(1)}`;
-const bootTime = (at) => capitalize(new Date(at).toLocaleString('da-DK', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }));
+const bootTime = (at) => capitalize(new Date(at).toLocaleString(locale, { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }));
 const sinceBoot = (session, at) => `+${duration((at - session.at) / MS_PER_SECOND)}`;
 
 // Filnavnet uden mappe, anførselstegn og argumenter: `C:\A\b.exe` og Explorers `b.exe" --x` giver `b.exe`.
@@ -82,7 +83,7 @@ function keepFocus(container, rebuild) {
   view.pressedKey = null;
 }
 
-const startupToggle = (entry) => toggle(`Opstart: ${entry.name}`, entry.enabled,
+const startupToggle = (entry) => toggle(t('Opstart: {name}', { name: entry.name }), entry.enabled,
   (button) => run('/api/action', { type: 'startup', id: entry.id, enable: !entry.enabled }, button));
 
 function withFocusKey(node, key) {
@@ -95,8 +96,10 @@ function withFocusKey(node, key) {
 function fastStartupNote(boot) {
   const days = Math.floor((Date.now() - boot.lastBoot) / MS_PER_DAY);
   if (!boot.fastStartup || days < 1) return null;
-  return el('p', { className: 'callout', title: 'Hurtig start er slået til, så "Luk computeren" starter ikke kernen og driverne forfra.' }, icon('lightning-charge'),
-    el('span', {}, `Hurtig start: sidste rigtige genstart for ${days} ${days === 1 ? 'dag' : 'dage'} siden. Brug "Genstart" en gang imellem.`));
+  return el('p', { className: 'callout', title: t('Hurtig start er slået til, så "Luk computeren" starter ikke kernen og driverne forfra.') }, icon('lightning-charge'),
+    el('span', {}, days === 1
+      ? t('Hurtig start: sidste rigtige genstart for 1 dag siden. Brug "Genstart" en gang imellem.')
+      : t('Hurtig start: sidste rigtige genstart for {n} dage siden. Brug "Genstart" en gang imellem.', { n: days })));
 }
 
 function bigDuration(seconds) {
@@ -111,14 +114,15 @@ function deviationChip(session) {
   const delta = session.totalSeconds - session.normalTotalSeconds;
   const size = Math.abs(delta);
   const text = size >= SECONDS_PER_MINUTE ? duration(size) : `${size < WHOLE_SECONDS_FROM ? oneDecimal(size) : Math.round(size)} s`;
-  const label = `${duration(size)} ${delta < 0 ? 'hurtigere' : 'langsommere'} end normalt (${duration(session.normalTotalSeconds)})`;
+  const vars = { time: duration(size), normal: duration(session.normalTotalSeconds) };
+  const label = delta < 0 ? t('{time} hurtigere end normalt ({normal})', vars) : t('{time} langsommere end normalt ({normal})', vars);
   return chip(`${delta < 0 ? '−' : '+'}${text}`, session.slower ? { tone: 'slow', iconName: 'graph-up-arrow', label } : { label });
 }
 
 function bootHead(session) {
-  const [typeIcon, typeText] = BOOT_TYPE[session.type] ?? ['power', 'ukendt starttype'];
+  const [typeIcon, typeText] = BOOT_TYPE[session.type] ?? ['power', t('ukendt starttype')];
   return el('div', { className: 'boot-head' },
-    session.totalSeconds !== null && el('p', { className: 'boot-total', title: 'Fra tænd til opstartsposterne var færdige' }, bigDuration(session.totalSeconds)),
+    session.totalSeconds !== null && el('p', { className: 'boot-total', title: t('Fra tænd til opstartsposterne var færdige') }, bigDuration(session.totalSeconds)),
     deviationChip(session),
     el('div', { className: 'chips boot-chips' }, chip(typeText, { iconName: typeIcon }), chip(bootTime(session.at), { iconName: 'calendar-event' })));
 }
@@ -126,8 +130,8 @@ function bootHead(session) {
 const runTone = (item) => (item.hitLimit ? 'is-limit' : item.slower ? 'is-slower' : '');
 
 function itemLabel(item, waitLimitSeconds) {
-  const normal = item.normal === null ? '' : `, normalt ${duration(item.normal)}`;
-  const limit = item.hitLimit ? `. Windows ventede maks. (${waitLimitSeconds} s)` : '';
+  const normal = item.normal === null ? '' : t(', normalt {time}', { time: duration(item.normal) });
+  const limit = item.hitLimit ? t('. Windows ventede maks. ({seconds} s)', { seconds: waitLimitSeconds }) : '';
   return `${runLabel(item.command)}: ${duration(item.seconds)}${normal}${limit}`;
 }
 
@@ -158,15 +162,15 @@ function timeline(session, waitLimitSeconds) {
   const normalAt = session.normalTotalSeconds === null ? null : session.at + session.normalTotalSeconds * MS_PER_SECOND;
 
   return el('div', { className: 'timeline' },
-    normalAt !== null && anchored('timeline-normal', normalAt, `normalt ${duration(session.normalTotalSeconds)}`),
+    normalAt !== null && anchored('timeline-normal', normalAt, t('normalt {time}', { time: duration(session.normalTotalSeconds) })),
     el('div', { className: 'timeline-track' },
-      block('is-phase', `Windows starter: ${duration(((logonAt ?? runsAt) - session.at) / MS_PER_SECOND)} før ${logonAt ? 'login' : 'opstartsposterne'}`, session.at, logonAt ?? runsAt, 'Windows'),
-      logonAt && block('is-phase', `Skrivebordet: ${duration((runsAt - logonAt) / MS_PER_SECOND)} fra login til opstartsposterne`, logonAt, runsAt, 'Skrivebord'),
+      block('is-phase', logonAt ? t('Windows starter: {time} før login', { time: duration((logonAt - session.at) / MS_PER_SECOND) }) : t('Windows starter: {time} før opstartsposterne', { time: duration((runsAt - session.at) / MS_PER_SECOND) }), session.at, logonAt ?? runsAt, 'Windows'),
+      logonAt && block('is-phase', t('Skrivebordet: {time} fra login til opstartsposterne', { time: duration((runsAt - logonAt) / MS_PER_SECOND) }), logonAt, runsAt, t('Skrivebord')),
       runs.map((item) => block(`is-run ${runTone(item)}`, itemLabel(item, waitLimitSeconds), item.startedAt, item.startedAt + item.seconds * MS_PER_SECOND, runLabel(item.command)))),
     el('div', { className: 'timeline-marks' },
-      mark(logonAt, 'logget ind', 'is-upper'),
-      mark(session.runsStartedAt, 'poster begynder', 'is-lower'),
-      mark(session.doneAt, 'færdige', 'is-upper')));
+      mark(logonAt, t('logget ind'), 'is-upper'),
+      mark(session.runsStartedAt, t('poster begynder'), 'is-lower'),
+      mark(session.doneAt, t('færdige'), 'is-upper')));
 }
 
 function failedServices(session) {
@@ -174,16 +178,16 @@ function failedServices(session) {
   return el('div', { className: 'boot-failed' },
     el('span', { className: 'boot-failed-label' }, 'Fejlede tjenester'),
     el('div', { className: 'chips' }, session.failedServices.map((service) => {
-      const reason = service.timeout ? 'svarede ikke i tide' : 'kunne ikke starte';
-      return chip(service.name, { tone: 'danger', iconName: service.timeout ? 'hourglass-split' : 'x-octagon', label: `${service.name} ${reason}` });
+      const label = service.timeout ? t('{name} svarede ikke i tide', { name: service.name }) : t('{name} kunne ikke starte', { name: service.name });
+      return chip(service.name, { tone: 'danger', iconName: service.timeout ? 'hourglass-split' : 'x-octagon', label });
     })));
 }
 
 function itemChip(item, waitLimitSeconds) {
-  if (item.hitLimit) return chip(`${waitLimitSeconds} s`, { tone: 'danger', iconName: 'hourglass-split', label: `Windows ventede maks. (${waitLimitSeconds} s)` });
+  if (item.hitLimit) return chip(`${waitLimitSeconds} s`, { tone: 'danger', iconName: 'hourglass-split', label: t('Windows ventede maks. ({seconds} s)', { seconds: waitLimitSeconds }) });
   if (!item.slower) return null;
   const ratio = item.normal > 0 ? `${oneDecimal(item.seconds / item.normal)}×` : '';
-  return chip(ratio, { tone: 'slow', iconName: 'graph-up-arrow', label: `Langsommere end normalt${ratio ? `: ${ratio.slice(0, -1)} gange så lang tid` : ''}` });
+  return chip(ratio, { tone: 'slow', iconName: 'graph-up-arrow', label: ratio ? t('Langsommere end normalt: {ratio} gange så lang tid', { ratio: ratio.slice(0, -1) }) : t('Langsommere end normalt') });
 }
 
 function bootItem(item, scale, waitLimitSeconds) {
@@ -202,7 +206,7 @@ function bootItem(item, scale, waitLimitSeconds) {
       el('p', { className: 'boot-title' }, el('b', {}, label), itemChip(item, waitLimitSeconds)),
       exe !== label && el('small', { title: entry?.command ?? item.command }, exe)),
     bar,
-    el('p', { className: 'boot-time' }, duration(item.seconds), el('small', {}, item.normal === null ? 'ingen normal' : `normalt ${duration(item.normal)}`)),
+    el('p', { className: 'boot-time' }, duration(item.seconds), el('small', {}, item.normal === null ? t('ingen normal') : t('normalt {time}', { time: duration(item.normal) }))),
     entry ? withFocusKey(startupToggle(entry), `boot:${entry.id}`) : el('span'));
 }
 
@@ -230,35 +234,36 @@ function renderBoot() {
 // Den valgte opstart. Et klik på en søjle tegner kun denne og markeringen.
 function renderSession() {
   const session = view.boot.sessions[view.bootIndex];
-  keepFocus(nodes.boot, () => setChildren(nodes.boot, session ? bootCard(view.boot, session) : el('p', { className: 'empty' }, 'Windows har ingen opstarter i eventloggen.')));
+  keepFocus(nodes.boot, () => setChildren(nodes.boot, session ? bootCard(view.boot, session) : el('p', { className: 'empty' }, t('Windows har ingen opstarter i eventloggen.'))));
   markSelectedBoot();
 }
 
 function bootCard(boot, session) {
   const scale = Math.max(1, ...session.items.flatMap((item) => [item.seconds, item.normal ?? 0]));
   return [
-    el('h2', { className: 'card-title' }, view.bootIndex === 0 ? 'Seneste opstart' : 'Opstart'),
+    el('h2', { className: 'card-title' }, view.bootIndex === 0 ? t('Seneste opstart') : t('Opstart')),
     fastStartupNote(boot),
     bootHead(session),
     session.totalSeconds !== null && timeline(session, boot.waitLimitSeconds),
     failedServices(session),
     session.items.length
       ? el('ol', { className: 'boot-items' }, session.items.map((item) => bootItem(item, scale, boot.waitLimitSeconds)))
-      : el('p', { className: 'empty' }, 'Windows har ikke længere tiderne for opstartsposterne fra denne opstart.'),
+      : el('p', { className: 'empty' }, t('Windows har ikke længere tiderne for opstartsposterne fra denne opstart.')),
   ];
 }
 
 // ---------- Tidligere opstarter ----------
 
 function historyLabel(session) {
-  const total = session.totalSeconds === null ? 'ingen tider' : duration(session.totalSeconds);
-  const slower = session.slower ? ', langsommere end normalt' : '';
-  const failed = session.failedServices.length ? `, ${session.failedServices.length} ${session.failedServices.length === 1 ? 'tjeneste' : 'tjenester'} fejlede` : '';
-  const worst = session.items[0] ? `, værst: ${runLabel(session.items[0].command)} ${duration(session.items[0].seconds)}` : '';
+  const total = session.totalSeconds === null ? t('ingen tider') : duration(session.totalSeconds);
+  const slower = session.slower ? t(', langsommere end normalt') : '';
+  const failedCount = session.failedServices.length;
+  const failed = !failedCount ? '' : failedCount === 1 ? t(', 1 tjeneste fejlede') : t(', {n} tjenester fejlede', { n: failedCount });
+  const worst = session.items[0] ? t(', værst: {name} {time}', { name: runLabel(session.items[0].command), time: duration(session.items[0].seconds) }) : '';
   return `${bootTime(session.at)}: ${total}${slower}${failed}${worst}`;
 }
 
-const shortDate = (at) => `${new Date(at).getDate()}.${new Date(at).getMonth() + 1}`;
+const shortDate = (at) => `${new Date(at).getDate()}${lang === 'da' ? '.' : '/'}${new Date(at).getMonth() + 1}`;
 
 // En søjle, der deler dato med en nabo, viser altid klokkeslættet, så de to kan skelnes (se startup.css).
 function historyBar(session, index, scale, sharesDate) {
@@ -269,7 +274,7 @@ function historyBar(session, index, scale, sharesDate) {
   const bar = el('button', { type: 'button', className: sharesDate ? 'history-bar is-twin' : 'history-bar', 'aria-label': label, title: label, 'aria-pressed': 'false', onclick: () => selectBoot(index) },
     el('span', { className: 'history-track' }, fill),
     el('span', { className: 'history-date', 'aria-hidden': 'true' }, shortDate(session.at),
-      el('span', { className: 'history-time' }, new Date(session.at).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }))));
+      el('span', { className: 'history-time' }, new Date(session.at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }))));
   return withFocusKey(bar, `boot-bar:${session.at}`);
 }
 
@@ -286,9 +291,9 @@ function renderHistory() {
   const sharesDate = (index) => dates[index - 1] === dates[index] || dates[index + 1] === dates[index];
   keepFocus(nodes.historyBars, () => setChildren(nodes.historyBars, sessions.map((session, index) => historyBar(session, index, scale, sharesDate(index))).reverse()));
   setChildren(nodes.historyLegend,
-    sessions.some((session) => session.totalSeconds !== null && !session.slower) && legendEntry('is-normal', 'normal'),
-    sessions.some((session) => session.slower) && legendEntry('is-slow', 'langsommere'),
-    sessions.some((session) => session.failedServices.length) && legendEntry('is-fail', 'fejlede tjenester'));
+    sessions.some((session) => session.totalSeconds !== null && !session.slower) && legendEntry('is-normal', t('normal')),
+    sessions.some((session) => session.slower) && legendEntry('is-slow', t('langsommere')),
+    sessions.some((session) => session.failedServices.length) && legendEntry('is-fail', t('fejlede tjenester')));
 }
 
 function markSelectedBoot() {
@@ -297,7 +302,7 @@ function markSelectedBoot() {
     bar.setAttribute('aria-pressed', String(count - 1 - position === view.bootIndex));
   }
   const worst = view.boot.sessions[view.bootIndex]?.items[0];
-  setChildren(nodes.historyWorst, worst && [el('span', {}, 'Værst: '), `${runLabel(worst.command)}, ${duration(worst.seconds)}`]);
+  setChildren(nodes.historyWorst, worst && [el('span', {}, `${t('Værst:')} `), `${runLabel(worst.command)}, ${duration(worst.seconds)}`]);
 }
 
 function selectBoot(index) {
@@ -307,7 +312,7 @@ function selectBoot(index) {
 
 // ---------- Opstartsposter, opgaver og tjenester ----------
 
-const byBloatThenName = (a, b) => Number(Boolean(b.bloatText || b.orphan)) - Number(Boolean(a.bloatText || a.orphan)) || String(a.name).localeCompare(String(b.name), 'da');
+const byBloatThenName = (a, b) => Number(Boolean(b.bloatText || b.orphan)) - Number(Boolean(a.bloatText || a.orphan)) || String(a.name).localeCompare(String(b.name), locale);
 const isDisabled = (service) => service.startMode === 'Disabled';
 
 // Samme filtre og sortering som altid. Deaktiverede tjenester står øverst og skjules aldrig, så de er hurtige at aktivere igen.
@@ -323,7 +328,7 @@ function inventoryLists(inventory, showWindows) {
 // Død post: slået til, men filen findes ikke. Samme regel som topbjælkens mærke (app.js), så tallene stemmer.
 const isDead = (item) => item.orphan && item.enabled !== false && item.startMode !== 'Disabled';
 const deadCount = (items) => items.filter(isDead).length;
-const deadText = (count) => (count === 1 ? 'død post: slået til, men filen findes ikke' : 'døde poster: slået til, men filen findes ikke');
+const deadText = (count) => (count === 1 ? t('død post: slået til, men filen findes ikke') : t('døde poster: slået til, men filen findes ikke'));
 
 function tabBadge(count, className, text) {
   return count > 0 && el('span', { className: `tab-badge ${className}`, title: `${count} ${text}` }, String(count), el('span', { className: 'visually-hidden' }, ` ${text}`));
@@ -342,23 +347,23 @@ function renderTabMeta(tab, shown, all) {
   const dead = deadCount(all);
   writeIfChanged(tab.dataset.inv, tab.querySelector('.inv-meta'), `${shown.length}|${bloat}|${dead}`,
     el('span', { className: 'tab-count' }, String(shown.length)),
-    tabBadge(bloat, 'is-junk', 'kendt bloat'),
+    tabBadge(bloat, 'is-junk', t('kendt bloat')),
     tabBadge(dead, '', deadText(dead)));
 }
 
 function renderHiddenDead(lists, inventory) {
   const hidden = Object.keys(lists).reduce((sum, kind) => sum + deadCount(inventory[kind]) - deadCount(lists[kind]), 0);
-  writeIfChanged('hiddenDead', nodes.hiddenDead, String(hidden), tabBadge(hidden, '', hidden === 1 ? 'død post er skjult' : 'døde poster er skjult'));
+  writeIfChanged('hiddenDead', nodes.hiddenDead, String(hidden), tabBadge(hidden, '', hidden === 1 ? t('død post er skjult') : t('døde poster er skjult')));
 }
 
 function itemChips(item) {
   return [
-    item.bloatText && chip('Kendt bloat', { tone: 'junk', iconName: 'trash3', title: item.bloatText }),
-    item.orphan && chip('Filen findes ikke', { tone: 'danger', iconName: 'file-earmark-x' }),
+    item.bloatText && chip(t('Kendt bloat'), { tone: 'junk', iconName: 'trash3', title: tr(item.bloatText) }),
+    item.orphan && chip(t('Filen findes ikke'), { tone: 'danger', iconName: 'file-earmark-x' }),
   ];
 }
 
-const runningDot = () => el('span', { className: 'run-dot' }, 'kører nu');
+const runningDot = () => el('span', { className: 'run-dot' }, t('kører nu'));
 
 // To linjer: navnet med mærker, og under det filnavnet og kilden i dæmpet tekst. Hele stien står i title.
 function inventoryRow(item, { title, sub, path, status, actions }) {
@@ -373,7 +378,7 @@ function inventoryRow(item, { title, sub, path, status, actions }) {
 const ROWS = {
   startup: (item, isRunning) => inventoryRow(item, {
     title: item.name,
-    sub: item.type === 'folder' ? 'Startmappen' : `Registreringsdatabasen (${item.scope})`,
+    sub: item.type === 'folder' ? t('Startmappen') : t('Registreringsdatabasen ({scope})', { scope: item.scope }),
     path: item.exe || item.command,
     status: isRunning(item.exe) && runningDot(),
     actions: withFocusKey(startupToggle(item), `startup:${item.id}`),
@@ -381,9 +386,9 @@ const ROWS = {
   tasks: (task, isRunning) => inventoryRow(task, {
     title: task.name,
     sub: task.path,
-    path: task.exe || 'Intet program (intern Windows-handling)',
+    path: task.exe || t('Intet program (intern Windows-handling)'),
     status: isRunning(task.exe) && runningDot(),
-    actions: withFocusKey(toggle(`Opgave: ${task.name}`, task.enabled,
+    actions: withFocusKey(toggle(t('Opgave: {name}', { name: task.name }), task.enabled,
       (button) => run('/api/action', { type: 'task', id: task.id, enable: !task.enabled }, button)), `task:${task.id}`),
   }),
   services: (service) => {

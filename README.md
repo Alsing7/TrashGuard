@@ -116,6 +116,14 @@ Kendte caches (`clean` i `kendt-bloat.json`) med størrelse. Vælg dem, der skal
 
 Alle handlinger grupperet pr. dag (I dag, I går, ellers ugedag og dato), nyeste først. Hver post er én række med ikon, tekst, klokkeslæt og Fortryd, når handlingen kan fortrydes.
 
+## Sprog
+
+TrashGuard findes på dansk og engelsk. Knappen ved siden af Opdatér skifter (DA/EN), og valget huskes i browseren. Første gang vælges sproget efter browserens sprog. Et skift genindlæser siden, så tal og datoer også følger med (1,5 % mod 1.5 %).
+
+- **Browseren:** dansk er kilden. Teksterne står som `t('Vælg alle')` i koden, og `public/en.js` oversætter dem. `node --test` fejler, hvis en tekst mangler en oversættelse.
+- **Serveren** kender ikke sproget. Den sender sine tekster (fejl, beskeder, logposter) som `{ da, en }`, og browseren vælger. Logposter fra før sprogene står kun på dansk.
+- **`kendt-bloat.json`:** forklaringer og Ryd op-navne er `{ "da": "…", "en": "…" }`. Et navn, der er ens på begge sprog (fx "Chrome"), kan være en almindelig streng.
+
 ## Sikkerhed
 
 Serveren kører som administrator, så den lytter kun på `127.0.0.1`. Den afviser forkert `Host` (DNS-rebinding) og fremmed `Origin`, og handlinger kræver et token, der laves ved hver opstart.
@@ -126,8 +134,9 @@ Serveren kører som administrator, så den lytter kun på `127.0.0.1`. Den afvis
 - `lib/disk.mjs`: scanner, træ, låse- og skraldregler og visningsudsnit. `lib/disk-service.mjs`: Disk-fanens ruter, gemte scanninger og papirkurv. `lib/clean.mjs`: Ryd op-fanens liste og oprydning
 - `ps/recycle.ps1`: flytter en liste til papirkurven efter tjek af kapacitet og fyld
 - `ps/sizes.ps1`: størrelser på låste filer via mappeoversigten, plus pladsen til gendannelsespunkter
-- `public/index.html`: skallen med topbjælke, bannere og fire tomme faner. `app.js`: strømmen fra serveren, den fælles tilstand, faneskift og topbjælken
+- `public/index.html`: skallen med topbjælke, sprogknap, bannere og fem tomme faner. `app.js`: strømmen fra serveren, den fælles tilstand, faneskift og topbjælken
 - `public/`: ét modul pr. fane, hver med sin CSS: `live.js` (overskrift, linser, liste, detalje) + `field.js` (boblefeltet) + `live.css` (Live), `startup.js` + `startup.css` (Opstart), `disk.js` + `disk.css` (Disk), `clean.js` + `clean.css` (Ryd op), `log.js` + `log.css` (Log). Kontrakten mellem app.js og fanerne står i `docs/design.md`
+- `public/i18n.js`: sprogvalg, `t()` og `tr()`. `public/en.js`: den engelske ordbog. `lib/text.mjs`: serverens `{ da, en }`
 - `public/ui.js`: fælles hjælpere og kontroller (talformat, handlinger, bekræftelse, kontakt, chip, segment, tjenestekontrol, kurver). `public/style.css`: farver, grundstil og fælles komponenter. `public/icons.css`: Bootstrap Icons (MIT) som masker, genereret af `tools/icons.mjs`
 - `tools/palette-check.mjs`: regner kontrast og CIEDE2000 ΔE for farverne i `style.css` og kortets flader i `disk.css`
 - `docs/design.md`: designkontrakten for UI'en (farveroller, beslutninger, ydelse, modulkontrakt)

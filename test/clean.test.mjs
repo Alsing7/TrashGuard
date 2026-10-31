@@ -110,12 +110,13 @@ test('run: hver mappes børn til papirkurven, i brug tælles, én logpost', asyn
     assert.equal(status, 200);
     assert.equal(calls.length, 2, 'ét kald pr. mappe, navnet kun én gang');
     assert.deepEqual(calls[0][1].slice(0, 1), ['-ListFile']);
-    assert.match(body.message, /2 ting var i brug: luk programmet og prøv igen/);
+    assert.match(body.message.da, /2 ting var i brug: luk programmet og prøv igen/);
+    assert.match(body.message.en, /2 items were in use/);
     assert.equal(logs.length, 1);
     assert.equal(logs[0].type, 'recycle');
     assert.equal(logs[0].undoable, false);
-    assert.match(body.message, /^Flyttede 0 MB til papirkurven\./, '1500 byte rundes til 0 MB');
-    assert.match(logs[0].label, /App/);
+    assert.match(body.message.da, /^Flyttede 0 MB til papirkurven\./, '1500 byte rundes til 0 MB');
+    assert.match(logs[0].label.da, /App/);
     assert.equal(body.rows[0].size, 0, 'målt igen bagefter');
     assert.equal(body.rows[0].name, 'App');
   } finally {
@@ -129,7 +130,7 @@ test('run: for stor til papirkurven stopper resten', async () => {
     const { clean, calls } = service(fx, async () => '{"ok":false,"reason":"too-big","maxBytes":1073741824}');
     const [status, body] = await clean.routes['/api/clean/run']({ names: ['App'] });
     assert.equal(status, 400);
-    assert.match(body.error, /For stor til papirkurven \(maks\. 1 GB/);
+    assert.match(body.error.da, /For stor til papirkurven \(maks\. 1 GB/);
     assert.equal(calls.length, 1);
   } finally {
     await rm(fx.root, { recursive: true, force: true });
@@ -175,10 +176,11 @@ test('run: PowerShell dør midt i kørslen → det flyttede er logget, og fejlen
     });
     const [status, body] = await clean.routes['/api/clean/run']({ names: ['Stor', 'Lille'] });
     assert.equal(status, 500);
-    assert.doesNotMatch(body.error, /Command failed/);
-    assert.match(body.error, /papirkurven/);
+    assert.doesNotMatch(body.error.da, /Command failed/);
+    assert.match(body.error.da, /papirkurven/);
+    assert.match(body.error.en, /Recycle Bin/);
     assert.equal(logs.length, 1, 'den række, der nåede at blive flyttet, er logget');
-    assert.match(logs[0].label, /Stor/);
+    assert.match(logs[0].label.en, /Stor/);
   } finally {
     await rm(fx.root, { recursive: true, force: true });
   }

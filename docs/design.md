@@ -12,7 +12,7 @@ Denne fil er den ene sandhed for UI'en. Brugeren valgte retningen "Legeplads" me
 
 ## Faste regler
 
-- Al tekst på dansk med rigtige æ, ø og å. Sætningsbogstaver. Ingen versaler som etiketter.
+- Al tekst skrives på dansk med rigtige æ, ø og å og pakkes i `t('…')` (public/i18n.js); den engelske udgave står i `public/en.js` med den danske tekst som nøgle. Variable dele er `{navn}`-pladsholdere, ikke sammensatte strenge. Serverens tekster er `{ da, en }` (lib/text.mjs) og vises med `tr()`. `node --test` fejler, hvis en `t()`-tekst eller en tekst i index.html mangler i en.js. Tal og datoer formateres med `locale` fra i18n.js. Sætningsbogstaver. Ingen versaler som etiketter.
 - Ingen emoji. Ikoner er Bootstrap Icons (MIT) som base64 data-URI-masker i `.bi`-mønstret. Stierne hentes fra de officielle SVG'er og genereres af `tools/icons.mjs` til `public/icons.css`.
 - Fladt: ingen `linear-gradient` eller `radial-gradient`. `conic-gradient` kun til et datadrevet ring- eller cirkeldiagram. Ingen farvede accentstriber på kanter (fx `border-left: 3px solid farve`). Ingen blur, ingen `backdrop-filter`, ingen dekorative skygger. Modal-baggrunde dæmpes kun let.
 - Kun lokale skrifttyper med fallback. Display: `"Futura XBlk BT", "Futura Extra Black", Bahnschrift, "Segoe UI", sans-serif`. Data: `Bahnschrift, "Segoe UI Variable Text", "Segoe UI", sans-serif`. Brødtekst: `"Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif`. Tal altid med `tabular-nums`.

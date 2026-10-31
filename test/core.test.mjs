@@ -165,7 +165,8 @@ test('deaktiverede tjenester kan aktiveres igen, også låste', () => {
   const auto = planAction({ type: 'service', name: 'XblGameSave', mode: 'auto' }, disabledState);
   assert.deepEqual(auto.steps.map((current) => current.args), [['config', 'XblGameSave', 'start=', 'auto'], ['start', 'XblGameSave']]);
   assert.equal(auto.prev.startMode, 'Disabled');
-  assert.match(auto.label, /aktiveret som Automatisk/);
+  assert.match(auto.label.da, /aktiveret som Automatisk/);
+  assert.match(auto.label.en, /enabled as Automatic/);
   const manual = planAction({ type: 'service', name: 'RpcSs', mode: 'manual' }, disabledState);
   assert.deepEqual(manual.steps.at(-1).args, ['config', 'RpcSs', 'start=', 'demand']);
   assert.ok(planAction({ type: 'service', name: 'RpcSs', mode: 'disabled' }, actionState).error);

@@ -4,52 +4,53 @@ import {
   percentParts, percent, memoryParts, memory,
 } from './ui.js';
 import { mountField, startField, stopField, renderField, renderLegend, selectBubble, popBubble, FULL_RELAX } from './field.js';
+import { t, tr, locale } from './i18n.js';
 
 // Én linse = én enhed. rankBy sorterer listen; fieldMin er det forbrug, der fylder feltet; idle er grænsen for "i hvile".
 const LENSES = {
   cpu: {
-    name: 'CPU', text: "af CPU'en går til ting, du ikke selv har åbnet", rankBy: 'avg', parts: percentParts,
-    second: { key: 'avg', label: 'snit', format: percent },
-    used: (totals) => totals.cpu, capacity: () => 100, total: (totals) => `${percent(totals.cpu)} i alt`,
+    name: 'CPU', text: t("af CPU'en går til ting, du ikke selv har åbnet"), rankBy: 'avg', parts: percentParts,
+    second: { key: 'avg', label: t('snit'), format: percent },
+    used: (totals) => totals.cpu, capacity: () => 100, total: (totals) => t('{value} i alt', { value: percent(totals.cpu) }),
     graphMin: 5, sparkMin: 1, sortStep: 0.1, fieldMin: 5, idle: 0.05,
   },
   ram: {
-    name: 'RAM', text: 'RAM optaget af ting, du ikke selv har åbnet', rankBy: 'ram', parts: memoryParts,
-    second: { key: 'priv', label: 'privat', format: memory },
-    used: (totals) => totals.ramUsed, capacity: (totals) => totals.ramTotal, total: (totals) => `${memory(totals.ramUsed)} af ${memory(totals.ramTotal)} brugt`,
+    name: 'RAM', text: t('RAM optaget af ting, du ikke selv har åbnet'), rankBy: 'ram', parts: memoryParts,
+    second: { key: 'priv', label: t('privat'), format: memory },
+    used: (totals) => totals.ramUsed, capacity: (totals) => totals.ramTotal, total: (totals) => t('{used} af {total} brugt', { used: memory(totals.ramUsed), total: memory(totals.ramTotal) }),
     graphMin: 1024, sparkMin: 256, sortStep: 10, fieldMin: 4096, idle: 1,
   },
   gpu: {
-    name: 'GPU', text: 'af grafikkortet går til ting, du ikke selv har åbnet', rankBy: 'gpuAvg', parts: percentParts,
-    second: { key: 'gpuAvg', label: 'snit', format: percent },
-    used: (totals) => totals.gpu, capacity: () => 100, total: (totals) => `${percent(totals.gpu)} i alt`,
+    name: 'GPU', text: t('af grafikkortet går til ting, du ikke selv har åbnet'), rankBy: 'gpuAvg', parts: percentParts,
+    second: { key: 'gpuAvg', label: t('snit'), format: percent },
+    used: (totals) => totals.gpu, capacity: () => 100, total: (totals) => t('{value} i alt', { value: percent(totals.gpu) }),
     graphMin: 5, sparkMin: 1, sortStep: 0.1, fieldMin: 5, idle: 0.05,
   },
   vram: {
-    name: 'VRAM', text: 'VRAM optaget af ting, du ikke selv har åbnet', rankBy: 'vram', parts: memoryParts,
+    name: 'VRAM', text: t('VRAM optaget af ting, du ikke selv har åbnet'), rankBy: 'vram', parts: memoryParts,
     second: null,
-    used: (totals) => totals.vramUsed, capacity: (totals) => totals.vramTotal, total: (totals) => `${memory(totals.vramUsed)} af ${memory(totals.vramTotal)} brugt`,
+    used: (totals) => totals.vramUsed, capacity: (totals) => totals.vramTotal, total: (totals) => t('{used} af {total} brugt', { used: memory(totals.vramUsed), total: memory(totals.vramTotal) }),
     graphMin: 512, sparkMin: 128, sortStep: 10, fieldMin: 1024, idle: 1,
   },
 };
 const LENS_KEYS = Object.keys(LENSES);
-const SECTIONS = { suspect: 'Syndere', yours: 'Dine programmer', trusted: 'Du stoler på', windows: 'Windows selv' };
+const SECTIONS = { suspect: t('Syndere'), yours: t('Dine programmer'), trusted: t('Du stoler på'), windows: t('Windows selv') };
 const SECTION_OF = { suspect: 'suspect', yours: 'yours', trusted: 'trusted', self: 'trusted', windows: 'windows', critical: 'windows', pending: 'windows' };
-const CATEGORY_CHIP = { suspect: 'Synder', yours: 'Dit program', trusted: 'Du stoler på', self: 'TrashGuard selv', windows: 'Windows', critical: 'Windows, kritisk', pending: 'Tjekkes' };
+const CATEGORY_CHIP = { suspect: t('Synder'), yours: t('Dit program'), trusted: t('Du stoler på'), self: t('TrashGuard selv'), windows: 'Windows', critical: t('Windows, kritisk'), pending: t('Tjekkes') };
 const LOCK_TEXT = {
-  critical: 'Afslut er låst: Windows kan ikke køre uden den',
-  windows: 'Afslut er låst: Windows-fil signeret af Microsoft',
-  pending: 'Afslut er låst, mens signaturen tjekkes',
-  stopped: 'Kører ikke lige nu',
-  nopath: 'Afslut er låst: Windows skjuler stien',
-  self: 'Det er TrashGuard selv',
+  critical: t('Afslut er låst: Windows kan ikke køre uden den'),
+  windows: t('Afslut er låst: Windows-fil signeret af Microsoft'),
+  pending: t('Afslut er låst, mens signaturen tjekkes'),
+  stopped: t('Kører ikke lige nu'),
+  nopath: t('Afslut er låst: Windows skjuler stien'),
+  self: t('Det er TrashGuard selv'),
 };
-const SOURCE_KIND = { startup: ['power', 'Opstart'], task: ['calendar-check', 'Opgave'], service: ['gear', 'Tjeneste'] };
+const SOURCE_KIND = { startup: ['power', t('Opstart')], task: ['calendar-check', t('Opgave')], service: ['gear', t('Tjeneste')] };
 // Detaljens fire ressourcefelter: [tal, etiket, format, andet tal, dets etiket, dets format].
 const DETAIL_STATS = [
-  ['cpu', 'CPU', percent, 'avg', 'snit', percent],
-  ['ram', 'RAM', memory, 'priv', 'privat', memory],
-  ['gpu', 'GPU', percent, 'gpuAvg', 'snit', percent],
+  ['cpu', 'CPU', percent, 'avg', t('snit'), percent],
+  ['ram', 'RAM', memory, 'priv', t('privat'), memory],
+  ['gpu', 'GPU', percent, 'gpuAvg', t('snit'), percent],
   ['vram', 'VRAM', memory, null, null, null],
 ];
 // Tallet tæller i trin over TWEEN_MS (et trin hver 80 ms, ikke hvert billede: hvert trin koster et billede).
@@ -71,39 +72,39 @@ const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const lensButton = (lens) => `
   <button type="button" class="lens" data-lens="${lens}" data-res="${lens}" aria-pressed="false">
     <span class="lens-name">${LENSES[lens].name}</span><span class="lens-value"></span>
-    <span class="lens-top"><span class="bi bi-fire" aria-hidden="true"></span><span class="visually-hidden">, bruger mest: </span><span class="lens-top-name"></span><b class="lens-top-value"></b></span>
+    <span class="lens-top"><span class="bi bi-fire" aria-hidden="true"></span><span class="visually-hidden">, ${t('bruger mest:')} </span><span class="lens-top-name"></span><b class="lens-top-value"></b></span>
     <canvas class="lens-spark" aria-hidden="true"></canvas>
   </button>`;
 const sectionMarkup = ([section, name]) => `
   <details class="section" data-section="${section}" data-cat="${section}"${section === 'suspect' ? ' open' : ''}>
-    <summary><span class="dot" aria-hidden="true"></span><span class="section-name">${name}</span><span class="count"></span><span class="bi bi-chevron-right section-chevron" aria-hidden="true"></span><span class="col-head">nu</span><span class="col-head is-second"></span></summary>
+    <summary><span class="dot" aria-hidden="true"></span><span class="section-name">${name}</span><span class="count"></span><span class="bi bi-chevron-right section-chevron" aria-hidden="true"></span><span class="col-head">${t('nu')}</span><span class="col-head is-second"></span></summary>
     <ol class="rows"></ol>
   </details>`;
 
 const TEMPLATE = `
-  <div class="lenses" role="group" aria-label="Vælg, hvad der skal måles">${LENS_KEYS.map(lensButton).join('')}</div>
+  <div class="lenses" role="group" aria-label="${t('Vælg, hvad der skal måles')}">${LENS_KEYS.map(lensButton).join('')}</div>
   <div class="hero">
     <div class="hero-main">
       <div class="hero-number">
         <p class="headline"><span class="headline-number">–</span><span class="headline-unit"></span></p>
-        <p class="top-user" title="Bruger mest lige nu"><span class="bi bi-fire" aria-hidden="true"></span><span class="visually-hidden">Bruger mest lige nu: </span><span class="top-name"></span><b class="top-value"></b></p>
+        <p class="top-user" title="${t('Bruger mest lige nu')}"><span class="bi bi-fire" aria-hidden="true"></span><span class="visually-hidden">${t('Bruger mest lige nu')}: </span><span class="top-name"></span><b class="top-value"></b></p>
       </div>
       <p class="headline-text"></p>
       <div class="meter" aria-hidden="true"><span class="meter-rest"></span><span class="meter-bg"></span></div>
-      <p class="meter-labels"><span class="meter-key">baggrund</span><span class="meter-key is-rest">andet <b class="meter-rest-value"></b></span><span class="meter-total"></span></p>
+      <p class="meter-labels"><span class="meter-key">${t('baggrund')}</span><span class="meter-key is-rest">${t('andet')} <b class="meter-rest-value"></b></span><span class="meter-total"></span></p>
     </div>
     <figure class="hero-graph">
-      <div class="curve" tabindex="0" role="slider" aria-label="Spol tilbage i de seneste 5 minutter" aria-valuemin="0" aria-valuemax="149" aria-valuenow="149" aria-valuetext="Nu">
+      <div class="curve" tabindex="0" role="slider" aria-label="${t('Spol tilbage i de seneste 5 minutter')}" aria-valuemin="0" aria-valuemax="149" aria-valuenow="149" aria-valuetext="${t('Nu')}">
         <canvas class="curve-canvas" aria-hidden="true"></canvas>
         <div class="scrub" aria-hidden="true"><span class="scrub-label"><b class="scrub-value"></b><span class="scrub-time"></span></span></div>
       </div>
-      <figcaption class="axis" aria-hidden="true"><span>−5 min</span><span>−4</span><span>−3</span><span>−2</span><span>−1</span><span>nu</span></figcaption>
+      <figcaption class="axis" aria-hidden="true"><span>−5 min</span><span>−4</span><span>−3</span><span>−2</span><span>−1</span><span>${t('nu')}</span></figcaption>
     </figure>
   </div>
   <div class="live">
-    <div class="field" role="group" aria-label="Programmerne som bobler. Størrelse er forbrug lige nu, farve er kategori. Listen har de samme programmer."></div>
+    <div class="field" role="group" aria-label="${t('Programmerne som bobler. Størrelse er forbrug lige nu, farve er kategori. Listen har de samme programmer.')}"></div>
     <div class="list">${Object.entries(SECTIONS).map(sectionMarkup).join('')}</div>
-    <aside class="detail" aria-label="Detaljer" hidden></aside>
+    <aside class="detail" aria-label="${t('Detaljer')}" hidden></aside>
   </div>`;
 
 // Fælles tilstand fra app.js (samme objekt hele tiden) og fanens egen visningstilstand.
@@ -135,7 +136,7 @@ const isVisible = (group) => group.running || (group.category === 'suspect' && (
 const serviceLabel = (group) => group.sources.find((source) => source.kind === 'service')?.label;
 // Menneskenavnet først: beskrivelsen, ellers den første tjeneste, ellers exe-navnet. Nogle filer har " " som beskrivelse.
 const humanName = (group) => group.desc?.trim() || serviceLabel(group) || group.name;
-const processes = (count) => `${count} ${count === 1 ? 'proces' : 'processer'}`;
+const processes = (count) => (count === 1 ? t('1 proces') : t('{n} processer', { n: count }));
 
 // Skifter tekstknudens data, når der er én, så layoutet ikke skal bygge en ny knude.
 function setText(node, text) {
@@ -146,7 +147,7 @@ function setText(node, text) {
 }
 
 const lensText = (lens, value) => LENSES[lens].parts(value).join(' ');
-const byName = new Intl.Collator('da').compare;
+const byName = new Intl.Collator(locale).compare;
 
 function setAttr(node, name, value) {
   if (node.getAttribute(name) !== value) node.setAttribute(name, value);
@@ -165,8 +166,8 @@ function write(key, value, apply) {
 function ago(offset) {
   const seconds = Math.round((offset * SAMPLE_MS) / 1000);
   const minutes = Math.floor(seconds / 60);
-  if (!minutes) return `for ${seconds} s siden`;
-  return seconds % 60 ? `for ${minutes} min ${seconds % 60} s siden` : `for ${minutes} min siden`;
+  if (!minutes) return t('for {s} s siden', { s: seconds });
+  return seconds % 60 ? t('for {m} min {s} s siden', { m: minutes, s: seconds % 60 }) : t('for {m} min siden', { m: minutes });
 }
 
 function groupsBySection() {
@@ -315,11 +316,11 @@ function renderScrub() {
   setAttr(curve, 'aria-valuemax', String(newest));
   setAttr(curve, 'aria-valuenow', String(newest - (offset ?? 0)));
   if (offset === null) {
-    setAttr(curve, 'aria-valuetext', 'Nu');
+    setAttr(curve, 'aria-valuetext', t('Nu'));
     return;
   }
   const value = lensText(state.lens, history[newest - offset] ?? 0);
-  const when = offset ? ago(offset) : 'nu';
+  const when = offset ? ago(offset) : t('nu');
   setText(scrubValue, value);
   setText(scrubTime, when);
   setAttr(curve, 'aria-valuetext', `${when}: ${value}`);
@@ -413,13 +414,13 @@ function tagsFor(group) {
   if (group.category !== 'suspect') return [];
   const via = group.autostartVia;
   // Baggrund viser kun ressourcerne ved månen; skærmlæseren får ordet med.
-  const background = group.background.length && chip(group.background.join(' '), { iconName: 'moon-stars', title: `Baggrund: ${group.background.join(', ')}` });
-  if (background) background.prepend(el('span', { className: 'visually-hidden' }, 'Baggrund: '));
+  const background = group.background.length && chip(group.background.join(' '), { iconName: 'moon-stars', title: t('Baggrund: {list}', { list: group.background.join(', ') }) });
+  if (background) background.prepend(el('span', { className: 'visually-hidden' }, `${t('Baggrund:')} `));
   return [
-    group.bloatText && chip('Kendt bloat', { iconName: 'trash3', tone: 'junk', title: group.bloatText }),
+    group.bloatText && chip(t('Kendt bloat'), { iconName: 'trash3', tone: 'junk', title: tr(group.bloatText) }),
     background,
-    group.autostart && chip(el('span', { className: 'chip-text' }, via ? `via ${via.replace(/\.exe$/i, '')}` : 'Autostart'), { iconName: 'power', title: via ? `Autostart via ${via}` : 'Starter automatisk' }),
-    !group.running && chip('Lukket nu', { tone: 'dashed' }),
+    group.autostart && chip(el('span', { className: 'chip-text' }, via ? t('via {name}', { name: via.replace(/\.exe$/i, '') }) : t('Autostart')), { iconName: 'power', title: via ? t('Autostart via {name}', { name: via }) : t('Starter automatisk') }),
+    !group.running && chip(t('Lukket nu'), { tone: 'dashed' }),
   ].filter(Boolean);
 }
 
@@ -583,11 +584,11 @@ function chainFor(group) {
   for (const ancestor of group.ancestors) {
     const exists = ancestor.key && state.groups.has(ancestor.key);
     items.push(el('li', {}, exists
-      ? el('button', { type: 'button', title: `Vis ${ancestor.name}`, onclick: () => select(ancestor.key, { focusDetail: true }) }, ancestor.name)
+      ? el('button', { type: 'button', title: t('Vis {name}', { name: ancestor.name }), onclick: () => select(ancestor.key, { focusDetail: true }) }, ancestor.name)
       : ancestor.name));
   }
   items.push(el('li', { className: 'is-self', 'data-cat': sectionOf(group) }, group.name));
-  return el('ol', { className: 'chain', 'aria-label': 'Hvad programmet hænger sammen med' }, items);
+  return el('ol', { className: 'chain', 'aria-label': t('Hvad programmet hænger sammen med') }, items);
 }
 
 function actionRow(iconName, title, note, ...controls) {
@@ -597,31 +598,31 @@ function actionRow(iconName, title, note, ...controls) {
 }
 
 function killAction(group) {
-  if (group.killLocked) return el('p', { className: 'lock-note action' }, icon('lock'), LOCK_TEXT[group.lock] ?? 'Afslut er låst');
+  if (group.killLocked) return el('p', { className: 'lock-note action' }, icon('lock'), LOCK_TEXT[group.lock] ?? t('Afslut er låst'));
   const kill = async (button) => {
     if (await run('/api/action', { type: 'kill', key: group.key }, button)) popBubble(group.key);
   };
-  return actionRow('x-octagon', 'Afslut nu', 'kan ikke fortrydes',
-    confirmButton('Afslut', `Bekræft: ${processes(group.count)}`, kill, 'button button-small button-danger', 'x-octagon'));
+  return actionRow('x-octagon', t('Afslut nu'), t('kan ikke fortrydes'),
+    confirmButton(t('Afslut'), t('Bekræft: {what}', { what: processes(group.count) }), kill, 'button button-small button-danger', 'x-octagon'));
 }
 
 function sourceAction(source) {
   const [iconName, kind] = SOURCE_KIND[source.kind];
   if (source.kind !== 'service') {
     const flip = (button) => run('/api/action', { type: source.kind, id: source.id, enable: !source.enabled }, button);
-    return actionRow(iconName, source.label, `${kind}, ${source.enabled ? 'slået til' : 'slået fra'}`, toggle(`${kind}: ${source.label}`, source.enabled, flip));
+    return actionRow(iconName, source.label, `${kind}, ${source.enabled ? t('slået til') : t('slået fra')}`, toggle(`${kind}: ${source.label}`, source.enabled, flip));
   }
   const service = state.inventory?.services.find((candidate) => candidate.name === source.id);
   if (!service) return actionRow(iconName, source.label, kind);
-  const status = `${startModeLabel(service)}, ${service.state === 'Running' ? 'kører' : 'stoppet'}`;
+  const status = `${startModeLabel(service)}, ${service.state === 'Running' ? t('kører') : t('stoppet')}`;
   return actionRow(iconName, source.label, status, ...serviceControl(service, state.protectedServices.has(service.name.toLowerCase())));
 }
 
 function trustAction(group) {
   const trusted = group.category === 'trusted';
   const flip = (event) => run('/api/trust', { key: group.key }, event.currentTarget);
-  return actionRow('shield-check', trusted ? 'Du stoler på den' : 'Stol på den', trusted ? 'foreslås ikke som synder' : 'flyttes ud af Syndere',
-    el('button', { type: 'button', className: 'button button-small', onclick: flip }, icon(trusted ? 'shield-slash' : 'shield-check'), trusted ? 'Fjern tillid' : 'Stol på'));
+  return actionRow('shield-check', trusted ? t('Du stoler på den') : t('Stol på den'), trusted ? t('foreslås ikke som synder') : t('flyttes ud af Syndere'),
+    el('button', { type: 'button', className: 'button button-small', onclick: flip }, icon(trusted ? 'shield-slash' : 'shield-check'), trusted ? t('Fjern tillid') : t('Stol på')));
 }
 
 function statTile([stat, label]) {
@@ -640,7 +641,7 @@ function buildDetail(group) {
   const tags = tagsFor(group);
   const meta = [
     group.path && el('li', {}, icon('folder'), group.path),
-    group.signer ? el('li', {}, icon('shield-check'), `Signeret af ${group.signer}`) : group.signed === false ? el('li', {}, icon('exclamation-triangle'), 'Ikke signeret') : null,
+    group.signer ? el('li', {}, icon('shield-check'), t('Signeret af {signer}', { signer: group.signer })) : group.signed === false ? el('li', {}, icon('exclamation-triangle'), t('Ikke signeret')) : null,
   ].filter(Boolean);
   const parts = {
     title: el('h2', { className: 'detail-title', tabindex: '-1' }, name),
@@ -650,13 +651,13 @@ function buildDetail(group) {
   };
   parts.nodes = [
     el('div', { className: 'detail-top' },
-      el('button', { type: 'button', className: 'icon-button icon-button-small detail-back', 'aria-label': 'Tilbage til listen', title: 'Tilbage til listen', onclick: closeDetail }, icon('chevron-left')),
+      el('button', { type: 'button', className: 'icon-button icon-button-small detail-back', 'aria-label': t('Tilbage til listen'), title: t('Tilbage til listen'), onclick: closeDetail }, icon('chevron-left')),
       category,
-      el('button', { type: 'button', className: 'icon-button icon-button-small detail-close', 'aria-label': 'Luk', title: 'Luk (Esc)', onclick: closeDetail }, icon('x-lg'))),
+      el('button', { type: 'button', className: 'icon-button icon-button-small detail-close', 'aria-label': t('Luk'), title: t('Luk (Esc)'), onclick: closeDetail }, icon('x-lg'))),
     parts.title,
     parts.sub,
     tags.length ? el('div', { className: 'chips' }, tags) : null,
-    group.bloatText ? el('p', { className: 'callout callout-junk' }, icon('trash3'), el('span', {}, group.bloatText)) : null,
+    group.bloatText ? el('p', { className: 'callout callout-junk' }, icon('trash3'), el('span', {}, tr(group.bloatText))) : null,
     el('dl', { className: 'stats' }, tiles.map((tile) => tile.node)),
     parts.spark,
     chainFor(group),

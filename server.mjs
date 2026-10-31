@@ -17,6 +17,7 @@ import { hostAllowed, originAllowed, tokenMatches } from './lib/guard.mjs';
 import { createDiskRules } from './lib/disk.mjs';
 import { createDiskService } from './lib/disk-service.mjs';
 import { createCleanService } from './lib/clean.mjs';
+import { text, inLang } from './lib/text.mjs';
 import { summarizeBoots } from './lib/boot.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -36,7 +37,7 @@ const BYTES_PER_MB = 1048576;
 const MEMORY_LENSES = new Set(['ram', 'vram']);
 const STATIC_TYPES = { js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8' };
 const STATIC_FILES = Object.fromEntries([
-  'app.js', 'ui.js', 'live.js', 'field.js', 'startup.js', 'disk.js', 'clean.js', 'log.js',
+  'app.js', 'ui.js', 'i18n.js', 'en.js', 'live.js', 'field.js', 'startup.js', 'disk.js', 'clean.js', 'log.js',
   'style.css', 'icons.css', 'live.css', 'startup.css', 'disk.css', 'clean.css', 'log.css',
 ].map((file) => [`/${file}`, [file, STATIC_TYPES[file.split('.').pop()]]]));
 const SECURITY_HEADERS = {
@@ -245,7 +246,7 @@ function refreshInventory() {
       broadcast('inventory', inventoryView());
       publish(Date.now());
     })
-    .catch((error) => broadcast('problem', { message: `Kunne ikke læse opstart og tjenester: ${error.message}` }))
+    .catch((error) => broadcast('problem', { message: text(`Kunne ikke læse opstart og tjenester: ${error.message}`, `Could not read startup and services: ${error.message}`) }))
     .finally(() => { inventoryRefresh = null; });
   return inventoryRefresh;
 }
@@ -257,7 +258,7 @@ function refreshBoot() {
       state.boot = summarizeBoots(parseJsonLine(output), config.boot);
       broadcast('boot', state.boot);
     })
-    .catch((error) => broadcast('problem', { message: `Kunne ikke læse opstartstiderne: ${error.message}` }))
+    .catch((error) => broadcast('problem', { message: text(`Kunne ikke læse opstartstiderne: ${error.message}`, `Could not read the boot times: ${error.message}`) }))
     .finally(() => { bootRefresh = null; });
   return bootRefresh;
 }
@@ -308,24 +309,24 @@ async function performUndo(body) {
   logStore.write(state.log);
   broadcast('log', state.log);
   await refreshInventory();
-  return [200, { message: `Fortrudt: ${entry.label}` }];
+  return [200, { message: text(`Fortrudt: ${inLang(entry.label, 'da')}`, `Undone: ${inLang(entry.label, 'en')}`) }];
 }
 
 function toggleTrust(body) {
   const key = String(body.key);
-  if (!state.groups.some((group) => group.key === key)) return [400, { error: 'Programmet findes ikke.' }];
+  if (!state.groups.some((group) => group.key === key)) return [400, { error: text('Programmet findes ikke.', 'The program no longer exists.') }];
   if (state.trusted.has(key)) state.trusted.delete(key);
   else state.trusted.add(key);
   trustStore.write([...state.trusted]);
   publish(Date.now());
-  return [200, { message: state.trusted.has(key) ? 'Du stoler nu på den.' : 'Tillid fjernet.' }];
+  return [200, { message: state.trusted.has(key) ? text('Du stoler nu på den.', 'You now trust it.') : text('Tillid fjernet.', 'Trust removed.') }];
 }
 
 const POST_ROUTES = {
   '/api/action': performAction,
   '/api/undo': performUndo,
   '/api/trust': toggleTrust,
-  '/api/refresh': async () => { await Promise.all([refreshInventory(), refreshBoot()]); return [200, { message: 'Opdateret.' }]; },
+  '/api/refresh': async () => { await Promise.all([refreshInventory(), refreshBoot()]); return [200, { message: text('Opdateret.', 'Refreshed.') }]; },
   ...disk.routes,
   ...clean.routes,
 };
@@ -343,7 +344,7 @@ function readBody(request) {
     const chunks = [];
     request.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) return reject(new Error('For stor forespørgsel.'));
+      if (size > MAX_BODY_BYTES) return reject(new Error('Request too large.'));
       chunks.push(chunk);
     });
     request.on('end', () => resolve(parseJsonLine(Buffer.concat(chunks).toString('utf8')) ?? {}));
@@ -357,28 +358,28 @@ function serveFile(response, file, type, transform = (text) => text) {
 }
 
 const server = http.createServer(async (request, response) => {
-  if (!hostAllowed(request.headers.host, config.port)) return reply(response, 403, { error: 'Forkert host.' });
+  if (!hostAllowed(request.headers.host, config.port)) return reply(response, 403, { error: text('Forkert host.', 'Wrong host.') });
   const url = new URL(request.url, baseUrl);
 
   if (request.method === 'GET') {
     if (url.pathname === '/') return serveFile(response, 'index.html', 'text/html; charset=utf-8', (html) => html.replace('__TOKEN__', token));
     if (STATIC_FILES[url.pathname]) return serveFile(response, ...STATIC_FILES[url.pathname]);
     if (url.pathname === '/api/stream') {
-      if (!tokenMatches(url.searchParams.get('t'), token)) return reply(response, 403, { error: 'Forkert token.' });
+      if (!tokenMatches(url.searchParams.get('t'), token)) return reply(response, 403, { error: text('Forkert token.', 'Wrong token.') });
       return openStream(request, response);
     }
   }
 
   const route = request.method === 'POST' && POST_ROUTES[url.pathname];
-  if (!route) return reply(response, 404, { error: 'Findes ikke.' });
+  if (!route) return reply(response, 404, { error: text('Findes ikke.', 'Not found.') });
   if (!originAllowed(request.headers.origin, config.port) || !tokenMatches(request.headers['x-trashguard-token'], token)) {
-    return reply(response, 403, { error: 'Afvist.' });
+    return reply(response, 403, { error: text('Afvist.', 'Rejected.') });
   }
   try {
     const [status, data] = await route(await readBody(request));
     reply(response, status, data);
   } catch (error) {
-    reply(response, 500, { error: error.message });
+    reply(response, 500, { error: error.text ?? error.message });
   }
 });
 

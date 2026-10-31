@@ -136,6 +136,7 @@ h1, h2, h3 { margin: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .icon-button-small { width: 34px; height: 34px; font-size: 0.95rem; background: var(--raised); }
 .icon-button-small:hover { background: var(--line); }
+.lang-button { font: 600 0.8rem var(--data); letter-spacing: 0.04em; }
 
 /* ---------- Bannere ---------- */
 

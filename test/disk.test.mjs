@@ -154,14 +154,16 @@ test('visning: dybde, "Små filer", "Andet" og arvet skrald', () => {
   assert.equal(view.size, view.children.reduce((sum, child) => sum + child.size, 0));
 });
 
-test('recycleError: papirkurvens afvisninger på dansk, null når alt gik igennem', async () => {
+test('recycleError: papirkurvens afvisninger på dansk og engelsk, null når alt gik igennem', async () => {
   const { recycleError } = await import('../lib/disk-service.mjs');
   const GB = 1024 ** 3;
   assert.equal(recycleError({ ok: true, moved: 2, failed: 0 }), null);
-  assert.match(recycleError({ ok: false, reason: 'bin-full', usedBytes: 3 * GB, maxBytes: 10 * GB }), /3 GB brugt af 10 GB.*Tøm papirkurven/);
-  assert.match(recycleError({ ok: false, reason: 'too-big', maxBytes: 10 * GB }), /maks\. 10 GB/);
-  assert.match(recycleError({ ok: false, reason: 'bin-disabled' }), /slået fra/);
-  assert.equal(recycleError({ ok: false, reason: 'ukendt' }), 'Papirkurven afviste den.');
+  const full = recycleError({ ok: false, reason: 'bin-full', usedBytes: 3 * GB, maxBytes: 10 * GB });
+  assert.match(full.da, /3 GB brugt af 10 GB.*Tøm papirkurven/);
+  assert.match(full.en, /3 GB used of 10 GB.*Empty the Recycle Bin/);
+  assert.match(recycleError({ ok: false, reason: 'too-big', maxBytes: 10 * GB }).da, /maks\. 10 GB/);
+  assert.match(recycleError({ ok: false, reason: 'bin-disabled' }).da, /slået fra/);
+  assert.deepEqual(recycleError({ ok: false, reason: 'ukendt' }), { da: 'Papirkurven afviste den.', en: 'The Recycle Bin refused it.' });
 });
 
 test('recycleList: ét kald ad gangen, hver sin listefil, filerne slettes, en fejl stopper ikke køen', async () => {
